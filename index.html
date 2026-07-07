@@ -3,14 +3,14 @@
   <head>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <title>遗失的日记</title>
+    <title>墨页</title>
 
     <!-- 汉字笔顺数据与动画：回信一笔一画写出来 -->
     <script src="https://cdn.jsdelivr.net/npm/hanzi-writer@3/dist/hanzi-writer.min.js"></script>
     <!-- 本地 OCR 兜底（未开启 AI 辨字时使用） -->
     <script src="https://cdn.jsdelivr.net/npm/tesseract.js@5/dist/tesseract.min.js"></script>
     <link
-      href="https://fonts.googleapis.com/css2?family=Noto+Serif+SC:wght@300;500&family=Ma+Shan+Zheng&family=Caveat:wght@600&display=swap"
+      href="https://fonts.googleapis.com/css2?family=Ma+Shan+Zheng&family=Caveat:wght@600&family=Klee+One:wght@600&display=swap"
       rel="stylesheet"
     />
 
@@ -29,11 +29,15 @@
       html,
       body {
         height: 100%;
+        overscroll-behavior: none;
+        -webkit-text-size-adjust: 100%;
       }
 
       body {
         margin: 0;
-        font-family: "Noto Serif SC", "Songti SC", serif;
+        font-family:
+          "Ma Shan Zheng", "Klee One", "Caveat", "Kaiti SC", "STKaiti",
+          cursive;
         background: radial-gradient(
           1300px 900px at 50% 28%,
           #2b2117,
@@ -44,9 +48,20 @@
         flex-direction: column;
         align-items: center;
         justify-content: center;
-        padding: 30px 16px;
+        padding: 22px 14px;
         color: var(--gold-dim);
-        overflow-x: hidden;
+        overflow: hidden;
+        user-select: none;
+        -webkit-user-select: none;
+        -webkit-touch-callout: none;
+        touch-action: none;
+      }
+
+      body.writing,
+      body.writing * {
+        user-select: none;
+        -webkit-user-select: none;
+        -webkit-touch-callout: none;
       }
 
       /* 摇曳的烛光氛围 */
@@ -81,32 +96,18 @@
         }
       }
 
-      .title {
-        margin: 0 0 8px;
-        font-size: 19px;
-        font-weight: 300;
-        letter-spacing: 16px;
-        text-indent: 16px;
-        color: var(--gold);
-        text-shadow: 0 0 22px rgba(255, 200, 110, 0.18);
-        user-select: none;
-      }
-
-      .epigraph {
-        margin: 0 0 30px;
-        font-size: 12px;
-        font-weight: 300;
-        letter-spacing: 3px;
-        color: #6f5f44;
-        font-style: italic;
-        user-select: none;
+      .stage {
+        width: min(900px, 96vw);
+        display: grid;
+        gap: 14px;
+        justify-items: center;
       }
 
       /* ── 羊皮纸 ─────────────────────────────── */
       .sheet {
         position: relative;
-        width: min(880px, 94vw);
-        height: min(590px, 66vh);
+        width: 100%;
+        height: min(640px, 78dvh);
         border-radius: 1.6% 2.6% 2% 3% / 3% 2.2% 3.4% 2.6%;
         background:
           radial-gradient(
@@ -144,6 +145,10 @@
         transform: rotate(0.3deg);
         cursor: crosshair;
         overflow: hidden;
+        user-select: none;
+        -webkit-user-select: none;
+        -webkit-touch-callout: none;
+        touch-action: none;
       }
 
       /* 纸张颗粒（SVG 噪点，乘法混合出纤维质感） */
@@ -208,6 +213,9 @@
         height: 100%;
         touch-action: none;
         z-index: 2;
+        user-select: none;
+        -webkit-user-select: none;
+        -webkit-touch-callout: none;
       }
 
       /* ── 日记的回信：按管理员配置显示特效 ── */
@@ -245,6 +253,28 @@
         width: auto;
         min-width: 16px;
         padding: 0 2px;
+      }
+
+      .stroke-letter {
+        display: block;
+        width: var(--letter-width, 20px);
+        height: 48px;
+        overflow: visible;
+      }
+
+      .stroke-letter text {
+        font-family: "Caveat", cursive;
+        font-size: 38px;
+        fill: transparent;
+        stroke: var(--ink-diary);
+        stroke-width: 1.25;
+        stroke-linecap: round;
+        stroke-linejoin: round;
+        stroke-dasharray: var(--dash, 120);
+        stroke-dashoffset: var(--dash, 120);
+        animation:
+          letterStroke var(--letter-duration, 320ms) ease forwards,
+          letterFill var(--letter-duration, 320ms) ease forwards;
       }
 
       /* 标点 / 英文 / 非笔顺效果：手写体逐字显现 */
@@ -327,94 +357,27 @@
         }
       }
 
-      /* ── 页脚控制区：极简 ──────────────────── */
-      .controls {
-        margin-top: 26px;
-        display: flex;
-        align-items: center;
-        gap: 30px;
-        font-size: 13px;
-        letter-spacing: 3px;
-        user-select: none;
+      @keyframes letterStroke {
+        to {
+          stroke-dashoffset: 0;
+        }
       }
 
-      .act {
-        background: none;
-        border: none;
-        padding: 5px 2px;
-        font: inherit;
-        letter-spacing: 4px;
-        color: var(--gold-dim);
-        cursor: pointer;
-        border-bottom: 1px solid transparent;
-        transition:
-          color 0.25s ease,
-          border-color 0.25s ease;
-      }
-
-      .act:hover:not(:disabled) {
-        color: #e7cd93;
-        border-bottom-color: rgba(231, 205, 147, 0.45);
-      }
-      .act:disabled {
-        opacity: 0.35;
-        cursor: default;
-      }
-
-      .ai-switch {
-        display: flex;
-        align-items: center;
-        gap: 9px;
-        cursor: pointer;
-        color: var(--gold-dim);
-      }
-
-      .ai-switch input {
-        display: none;
-      }
-
-      .ai-switch .track {
-        width: 30px;
-        height: 15px;
-        border-radius: 999px;
-        border: 1px solid rgba(201, 177, 131, 0.4);
-        position: relative;
-        transition: background 0.25s ease;
-      }
-
-      .ai-switch .track::after {
-        content: "";
-        position: absolute;
-        top: 2px;
-        left: 2.5px;
-        width: 9px;
-        height: 9px;
-        border-radius: 50%;
-        background: var(--gold-dim);
-        transition:
-          transform 0.25s ease,
-          background 0.25s ease;
-      }
-
-      .ai-switch input:checked + .track {
-        background: rgba(201, 177, 131, 0.22);
-      }
-      .ai-switch input:checked + .track::after {
-        transform: translateX(14px);
-        background: #e7cd93;
-      }
-      .ai-switch.disabled {
-        opacity: 0.35;
-        cursor: default;
+      @keyframes letterFill {
+        78% {
+          fill: transparent;
+        }
+        100% {
+          fill: var(--ink-diary);
+        }
       }
 
       #status {
-        margin-top: 16px;
+        margin: 0;
         min-height: 20px;
-        font-size: 12px;
-        font-weight: 300;
+        font-size: 17px;
+        font-weight: 400;
         letter-spacing: 2px;
-        font-style: italic;
         color: #6f5f44;
         text-align: center;
         transition: opacity 0.4s ease;
@@ -422,20 +385,19 @@
       }
 
       @media (max-width: 640px) {
-        .title {
-          font-size: 16px;
-          letter-spacing: 10px;
-          text-indent: 10px;
+        body {
+          padding: 10px;
         }
         .sheet {
-          height: 60vh;
+          height: 82dvh;
         }
         #replyLayer {
           padding: 30px 28px;
           font-size: 27px;
         }
-        .controls {
-          gap: 18px;
+        #status {
+          font-size: 15px;
+          letter-spacing: 1px;
         }
       }
     </style>
@@ -444,25 +406,14 @@
   <body>
     <div class="candlelight"></div>
 
-    <h1 class="title">遗失的日记</h1>
-    <p class="epigraph">以墨书写。停笔片刻，它会读你。</p>
+    <main class="stage">
+      <div class="sheet" id="sheet">
+        <canvas id="inkCanvas"></canvas>
+        <div id="replyLayer"></div>
+      </div>
 
-    <div class="sheet" id="sheet">
-      <canvas id="inkCanvas"></canvas>
-      <div id="replyLayer"></div>
-    </div>
-
-    <div class="controls">
-      <button class="act" id="readBtn">阅 读</button>
-      <button class="act" id="clearBtn">新的一页</button>
-      <label class="ai-switch" id="aiWrap">
-        <input type="checkbox" id="aiToggle" checked />
-        <span class="track"></span>
-        <span>AI 辨字</span>
-      </label>
-    </div>
-
-    <div id="status">在纸页上写点什么……</div>
+      <div id="status" aria-live="polite">纸页在等一滴墨。</div>
+    </main>
 
     <script>
       /* ============================================================
@@ -476,15 +427,12 @@
       const ctx = canvas.getContext("2d");
       const replyLayer = document.getElementById("replyLayer");
       const statusEl = document.getElementById("status");
-      const readBtn = document.getElementById("readBtn");
-      const clearBtn = document.getElementById("clearBtn");
-      const aiToggle = document.getElementById("aiToggle");
-      const aiWrap = document.getElementById("aiWrap");
 
       const INK_USER = "#2a2016";
       const INK_DIARY = "#3b2a15";
       const CJK = /[㐀-鿿]/;
       const KANA = /[\u3040-\u30ff]/;
+      const LATIN = /[A-Za-z0-9]/;
       const NARROW = /[，。、；：！？…·—''""「」『』《》（）,.!?;:'"()]/;
       const REPLY_SPEEDS = {
         normal: {
@@ -529,7 +477,7 @@
       let lastTime = 0;
       let state = "idle"; // idle | reading | replying
       let autoReadTimer = null;
-      let genId = 0; // “新的一页”可打断回信
+      let genId = 0; // 清页或重新生成时打断回信
       let serverAI = false;
       let replyEffect = "stroke";
       let replySpeed = "fast";
@@ -570,6 +518,7 @@
       canvas.addEventListener("pointerdown", (e) => {
         if (state !== "idle") return;
         e.preventDefault();
+        document.body.classList.add("writing");
         try {
           canvas.setPointerCapture(e.pointerId);
         } catch (_) {}
@@ -584,28 +533,37 @@
       canvas.addEventListener("pointermove", (e) => {
         if (!currentStroke) return;
         e.preventDefault();
-        const p = getPoint(e);
+        const events =
+          typeof e.getCoalescedEvents === "function"
+            ? e.getCoalescedEvents()
+            : [e];
+        for (const event of events) drawPoint(getPoint(event));
+      });
+
+      function drawPoint(p) {
         const now = performance.now();
         const dist = Math.hypot(p.x - lastPoint.x, p.y - lastPoint.y);
-        if (dist < 1.5) return;
+        if (dist < 0.7) return;
         const speed = dist / Math.max(now - lastTime, 1);
-        const w = Math.max(2.4, Math.min(6, 6 - speed * 2.6)); // 快细慢粗，似蘸水笔
+        const w = Math.max(2.2, Math.min(6.4, 6.2 - speed * 2.3));
         currentStroke.points.push({ ...p, w });
         drawSegment(lastPoint, p, w);
         lastPoint = p;
         lastTime = now;
-      });
+      }
 
       function endStroke() {
+        document.body.classList.remove("writing");
         if (!currentStroke) return;
         currentStroke = null;
         clearTimeout(autoReadTimer);
         autoReadTimer = setTimeout(readInk, 2800);
-        setStatus("日记感觉到了墨水的重量……");
+        setStatus("墨还湿着，纸页正在听。");
       }
 
       canvas.addEventListener("pointerup", endStroke);
       canvas.addEventListener("pointercancel", endStroke);
+      canvas.addEventListener("contextmenu", (e) => e.preventDefault());
 
       function drawSegment(a, b, w) {
         ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
@@ -621,19 +579,22 @@
         ctx.stroke();
       }
 
-      function drawStrokes(alpha = 1, blur = 0, sink = 0) {
+      function drawStrokes(alpha = 1, blur = 0, sink = 0, dry = 0) {
         ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
         ctx.clearRect(0, 0, canvas.width, canvas.height);
         ctx.filter = blur > 0 ? `blur(${blur}px)` : "none";
         ctx.globalAlpha = alpha;
-        ctx.strokeStyle = INK_USER;
+        const r = Math.round(42 + dry * 64);
+        const g = Math.round(32 + dry * 44);
+        const b = Math.round(22 + dry * 30);
+        ctx.strokeStyle = `rgb(${r}, ${g}, ${b})`;
         ctx.lineCap = "round";
         ctx.lineJoin = "round";
         for (const s of strokes) {
           for (let i = 1; i < s.points.length; i++) {
             const a = s.points[i - 1],
               b = s.points[i];
-            ctx.lineWidth = (a.w + b.w) / 2;
+            ctx.lineWidth = ((a.w + b.w) / 2) * (1 - dry * 0.18);
             ctx.beginPath();
             ctx.moveTo(a.x, a.y + sink);
             ctx.lineTo(b.x, b.y + sink);
@@ -645,13 +606,14 @@
       }
 
       /* ── 墨迹被纸页吸收 ── */
-      function absorbInk(duration = 2200) {
+      function absorbInk(duration = 1900) {
         return new Promise((resolve) => {
           const start = performance.now();
           (function frame(now) {
             const t = Math.min(1, (now - start) / duration);
             const e = t * t * (3 - 2 * t);
-            drawStrokes(1 - e, e * 7, e * 5);
+            const dry = Math.min(1, e * 1.25);
+            drawStrokes(Math.max(0, 1 - e * e), e * 1.8, 0, dry);
             if (t < 1) requestAnimationFrame(frame);
             else {
               strokes = [];
@@ -683,7 +645,7 @@
             logger: (m) => {
               if (m.status === "recognizing text" && state === "reading")
                 setStatus(
-                  `它在辨认你的字迹…… ${Math.round(m.progress * 100)}%`,
+                  `纸页正在听墨…… ${Math.round(m.progress * 100)}%`,
                 );
             },
           });
@@ -742,7 +704,7 @@
       }
 
       async function recognize(image) {
-        if (aiToggle.checked && serverAI) {
+        if (serverAI) {
           const r = await fetch("/api/read", {
             method: "POST",
             headers: apiHeaders,
@@ -752,7 +714,7 @@
             const d = await r.json();
             return normalizeRecognition(d);
           }
-          setStatus("它的眼睛有些模糊，改用旧法辨认……");
+          setStatus("云影掠过，纸页改用自己的记忆。");
         }
         if (typeof Tesseract === "undefined")
           throw new Error("ocr_unavailable");
@@ -795,22 +757,22 @@
         const language = input.language || detectLanguage(text || description);
         if (!text && description) {
           if (language === "en")
-            return `I see ${description}.\nThe page remembers its shape.`;
+            return `I see ${description}.\nIt wants a name.`;
           if (language === "ja")
-            return `${description}が見える。\n紙はその影を覚えている。`;
-          return `我看见了${description}。\n纸页记住了它的轮廓。`;
+            return `${description}が見える。\n名を待っている。`;
+          return `我看见了${description}。\n它在等一个名字。`;
         }
         if (!text) {
-          if (language === "en") return "The ink has blurred.\nWrite larger, slowly.";
-          if (language === "ja") return "墨がにじんだ。\nもう少し大きく、ゆっくり書いて。";
-          return "墨迹在纸上晕开了。\n写得再大一些，慢一些。";
+          if (language === "en") return "Too faint.\nPress the ink deeper.";
+          if (language === "ja") return "薄すぎる。\nもう少し深く。";
+          return "太淡了。\n把墨落深一点。";
         }
         if (language === "en") {
           const pool = [
-            `"${text}"...\nThe page grows warm beneath the word.`,
-            `I remember "${text}".\nSomeone wrote it here long ago.`,
-            `"${text}".\nInk remembers longer than people do.`,
-            `Your pen paused on "${text}".\nWhy?`,
+            `"${text}" stays.\nUse it now.`,
+            `I know "${text}".\nDo not waste it.`,
+            `"${text}" is awake.\nKeep your hand steady.`,
+            `Good.\n"${text}" opened something.`,
           ];
           let h = 0;
           for (const c of text) h = (h * 31 + c.codePointAt(0)) >>> 0;
@@ -818,20 +780,20 @@
         }
         if (language === "ja") {
           const pool = [
-            `「${text}」……\nその言葉で紙がかすかに熱を持つ。`,
-            `「${text}」を覚えている。\n昔も誰かがここに書いた。`,
-            `「${text}」。\n墨は人より長く覚えている。`,
-            `「${text}」を書く時、\n君の筆先は少し止まった。なぜ？`,
+            `「${text}」は残る。\n今使って。`,
+            `「${text}」を知っている。\n無駄にしないで。`,
+            `「${text}」が起きた。\n手を止めないで。`,
+            `いい。\n「${text}」が何かを開けた。`,
           ];
           let h = 0;
           for (const c of text) h = (h * 31 + c.codePointAt(0)) >>> 0;
           return pool[h % pool.length];
         }
         const pool = [
-          `「${text}」……\n这个词让我的书页微微发烫。`,
-          `我认得「${text}」。\n很久以前，也有人在我身上写下过它。`,
-          `「${text}」。\n墨水记得的，总是比人更久。`,
-          `你写下「${text}」的时候，\n笔尖停顿了一下。为什么？`,
+          `「${text}」留下了。\n现在用它。`,
+          `我认得「${text}」。\n别浪费。`,
+          `「${text}」醒了。\n手别停。`,
+          `很好。\n「${text}」打开了什么。`,
         ];
         let h = 0;
         for (const c of text) h = (h * 31 + c.codePointAt(0)) >>> 0;
@@ -872,6 +834,33 @@
           }
           setTimeout(finish, 6500);
         });
+      }
+
+      function letterWidth(ch) {
+        if (/[mwMW@#%]/.test(ch)) return 30;
+        if (/[ilI1.,'!|]/.test(ch)) return 12;
+        if (/[fjrt]/.test(ch)) return 17;
+        return 22;
+      }
+
+      function strokeLatinChar(cell, ch, profile) {
+        const width = letterWidth(ch);
+        cell.style.width = width + "px";
+        cell.style.minWidth = width + "px";
+        const svg = document.createElementNS("http://www.w3.org/2000/svg", "svg");
+        svg.setAttribute("class", "stroke-letter");
+        svg.setAttribute("viewBox", `0 0 ${width + 8} 48`);
+        svg.style.setProperty("--letter-width", width + 8 + "px");
+        svg.style.setProperty("--letter-duration", profile.charDuration + "ms");
+        svg.style.setProperty("--dash", Math.max(80, width * 7) + "");
+
+        const text = document.createElementNS("http://www.w3.org/2000/svg", "text");
+        text.setAttribute("x", "1");
+        text.setAttribute("y", "36");
+        text.textContent = ch;
+        svg.appendChild(text);
+        cell.appendChild(svg);
+        return wait(profile.charDuration);
       }
 
       function fadeChar(cell, ch, effect, profile) {
@@ -919,7 +908,7 @@
           const cell = document.createElement("span");
           cell.className =
             "cell" +
-            (NARROW.test(ch) ? " narrow" : !CJK.test(ch) ? " latin" : "");
+            (NARROW.test(ch) ? " narrow" : LATIN.test(ch) ? " latin" : "");
           cell.style.setProperty(
             "--r",
             (Math.random() * 3 - 1.5).toFixed(1) + "deg",
@@ -931,6 +920,8 @@
           replyLayer.appendChild(cell);
           if (effect === "stroke" && CJK.test(ch) && window.HanziWriter) {
             await strokeChar(cell, ch, profile);
+          } else if (effect === "stroke" && LATIN.test(ch)) {
+            await strokeLatinChar(cell, ch, profile);
           } else {
             fadeChar(cell, ch, effect === "stroke" ? "ink" : effect, profile);
             await wait(profile.revealStep);
@@ -954,10 +945,9 @@
       async function readInk() {
         if (state !== "idle" || strokes.length === 0) return;
         state = "reading";
-        readBtn.disabled = true;
         clearTimeout(autoReadTimer);
         sheet.classList.add("reading");
-        setStatus("它在辨认你的字迹……");
+        setStatus("纸页正辨认墨里的声音。");
 
         const image = snapshot();
         let recognition = normalizeRecognition({});
@@ -975,22 +965,22 @@
 
         let reply;
         if (failed) {
-          setStatus("一层雾挡住了它的视线（识别服务不可用）。");
-          reply = "今夜雾很重，\n我看不清你的字。";
+          setStatus("雾压低了墨色。");
+          reply = "太暗了。\n再落一笔。";
         } else if (recognition.type === "drawing" && recognition.description) {
-          setStatus("它看见了纸上的图，正提笔回信……");
+          setStatus("线条已经开口。");
           reply = await getReply(recognition);
         } else if (!recognition.text) {
-          setStatus("它没有读出文字。");
-          reply = "墨迹晕开了。\n写得再大一些，慢一些。";
+          setStatus("纸页只听见淡淡的风。");
+          reply = "太淡了。\n把墨落深一点。";
         } else {
-          setStatus(`它读到了：「${recognition.text}」，正提笔回信……`);
+          setStatus("墨意已经成形。");
           reply = await getReply(recognition);
         }
 
         state = "replying";
         const my = genId;
-        setStatus("它在回信。");
+        setStatus("回声正在长出来。");
         await writeReply(reply);
         if (my === genId) {
           const profile = speedProfile();
@@ -999,48 +989,37 @@
         }
         if (my === genId) {
           state = "idle";
-          readBtn.disabled = false;
-          setStatus("字迹沉入了纸页。继续写吧……");
+          setStatus("墨已干。下一笔可以落下。");
         }
       }
 
-      readBtn.addEventListener("click", readInk);
-
-      clearBtn.addEventListener("click", () => {
+      function clearPage() {
         if (state === "reading") return; // 吸收/识别中不可打断
         genId++;
         strokes = [];
         currentStroke = null;
+        document.body.classList.remove("writing");
         clearTimeout(autoReadTimer);
         ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
         ctx.clearRect(0, 0, canvas.width, canvas.height);
         replyLayer.innerHTML = "";
         replyLayer.style.opacity = 1;
         state = "idle";
-        readBtn.disabled = false;
-        setStatus("翻到了新的一页。");
-      });
+        setStatus("纸页重新安静。");
+      }
 
-      /* ── AI 开关记忆 ── */
-      aiToggle.checked = localStorage.getItem("aiRead") !== "0";
-      aiToggle.addEventListener("change", () => {
-        localStorage.setItem("aiRead", aiToggle.checked ? "1" : "0");
+      window.addEventListener("keydown", (e) => {
+        if (e.key === "Escape") clearPage();
       });
 
       /* ── 启动：查询 AI 状态、记一次访问 ── */
       fetch("/api/status")
         .then((r) => r.json())
         .then((s) => {
-          serverAI = !!s.ai;
+          serverAI = !!s.ai_read;
           replyEffect = normalizeReplyEffect(s.reply_effect);
           replySpeed = normalizeReplySpeed(s.reply_speed);
-          if (!serverAI) {
-            aiToggle.checked = false;
-            aiToggle.disabled = true;
-            aiWrap.classList.add("disabled");
-            aiWrap.title = "服务器未配置 API Key";
-            if (typeof Tesseract !== "undefined") getWorker(); // 预热本地 OCR
-          }
+          if (!serverAI && typeof Tesseract !== "undefined") getWorker();
         })
         .catch(() => {
           serverAI = false;

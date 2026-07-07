@@ -53,6 +53,7 @@ DEFAULT_CONFIG = {
     "model": "gpt-4o-mini",
     "reply_effect": "stroke",     # stroke | fade | ink
     "reply_speed": "fast",        # normal | fast | very_fast
+    "ai_read_enabled": True,
 }
 
 ALLOWED_REPLY_EFFECTS = {"stroke", "fade", "ink"}
@@ -125,6 +126,23 @@ def normalize_reply_effect(value):
 def normalize_reply_speed(value):
     value = str(value or "").strip().lower()
     return value if value in ALLOWED_REPLY_SPEEDS else DEFAULT_CONFIG["reply_speed"]
+
+
+def normalize_bool(value, default=True):
+    if isinstance(value, bool):
+        return value
+    if isinstance(value, (int, float)):
+        return bool(value)
+    text = str(value or "").strip().lower()
+    if text in {"1", "true", "yes", "on", "enabled", "开启"}:
+        return True
+    if text in {"0", "false", "no", "off", "disabled", "关闭"}:
+        return False
+    return default
+
+
+def ai_read_enabled(cfg):
+    return normalize_bool(cfg.get("ai_read_enabled"), True)
 
 
 def public_reply_config(cfg):
@@ -512,10 +530,10 @@ def openai_chat(cfg, messages, max_tokens=300):
 def language_instruction(language):
     language = normalize_language(language)
     if language == "en":
-        return "Reply in English. Do not translate the user's words into Chinese or Japanese."
+        return "Reply in English. Keep it under 25 words."
     if language == "ja":
-        return "日本語で返事を書いてください。中国語や英語に翻訳しないでください。"
-    return "请用中文回信。默认语言是中文。"
+        return "日本語で返事を書いてください。35字以内。"
+    return "请用中文回信。默认语言是中文。35字以内。"
 
 
 def user_prompt(text, image_context="", input_type="text"):
@@ -536,10 +554,10 @@ def persona_prompt(cfg, language="zh"):
     bg = (cfg.get("owner_background") or "").strip()
     return (
         f"你是一本被遗忘多年的日记，属于「{owner}」。{bg}\n"
-        "有人正用墨水在你的书页上写字或画图，你以日记主人的口吻亲笔回信。\n"
-        "要求：使用第一人称；语气克制、神秘、有旧信件的质感；"
-        "绝不提及自己是AI、程序或模型；回信不超过60个字；"
-        "可以用换行分段；只输出回信正文，不要任何解释。\n"
+        "有人在你的书页上写字或画图，你直接回应内容。\n"
+        "要求：简洁、具体、略带神秘；不要书信体，不要寒暄，不要解释，"
+        "不要公正评判或列举两面观点；绝不提及自己是AI、程序或模型；"
+        "只输出回信正文。\n"
         f"{language_instruction(language)}"
     )
 
@@ -606,8 +624,10 @@ class Handler(BaseHTTPRequestHandler):
 
         if path == "/api/status":
             cfg = STORE.get_config()
+            has_ai = bool(api_key(cfg))
             return self._send(200, {
-                "ai": bool(api_key(cfg)),
+                "ai": has_ai,
+                "ai_read": has_ai and ai_read_enabled(cfg),
                 **public_reply_config(cfg),
             })
 
@@ -627,6 +647,7 @@ class Handler(BaseHTTPRequestHandler):
                 "model": eff_model(cfg),
                 "openai_base_url": eff_base_url(cfg),
                 **public_reply_config(cfg),
+                "ai_read_enabled": ai_read_enabled(cfg),
                 "api_key_masked": ("…" + key[-4:]) if key else "",
                 "env_key": bool(os.environ.get("OPENAI_API_KEY")),
                 "env_model": bool(os.environ.get("OPENAI_MODEL")),
@@ -670,6 +691,8 @@ class Handler(BaseHTTPRequestHandler):
                 if not image.startswith("data:image/"):
                     return self._send(400, {"error": "bad_image"})
                 cfg = STORE.get_config()
+                if not ai_read_enabled(cfg):
+                    return self._send(403, {"error": "ai_read_disabled"})
                 raw, usage = openai_chat(cfg, [{
                     "role": "user",
                     "content": [
@@ -702,6 +725,8 @@ class Handler(BaseHTTPRequestHandler):
                     cfg["reply_effect"] = normalize_reply_effect(body["reply_effect"])
                 if "reply_speed" in body:
                     cfg["reply_speed"] = normalize_reply_speed(body["reply_speed"])
+                if "ai_read_enabled" in body:
+                    cfg["ai_read_enabled"] = normalize_bool(body["ai_read_enabled"], True)
                 if body.get("openai_api_key"):
                     cfg["openai_api_key"] = str(body["openai_api_key"]).strip()
                 if body.get("admin_user"):

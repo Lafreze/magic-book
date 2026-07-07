@@ -374,6 +374,11 @@
         <div class="hint" id="aiEnvHint">
           使用中转/代理服务时改成对应地址，需兼容 OpenAI Chat Completions 格式。
         </div>
+        <label>AI 辨字</label>
+        <select id="aiReadEnabled">
+          <option value="1">开启</option>
+          <option value="0">关闭，仅用本地 OCR</option>
+        </select>
         <label>OpenAI API Key</label>
         <input id="apiKey" type="password" autocomplete="off" />
         <div class="hint" id="keyHint">
@@ -477,6 +482,7 @@
         $("ownerBg").value = cfg.owner_background || "";
         $("model").value = cfg.model || "";
         $("baseUrl").value = cfg.openai_base_url || "";
+        $("aiReadEnabled").value = cfg.ai_read_enabled === false ? "0" : "1";
         $("replyEffect").value = cfg.reply_effect || "stroke";
         $("replySpeed").value = cfg.reply_speed || "fast";
         $("storageHint").textContent = `当前存储：${cfg.storage || "JSON 文件"}`;
@@ -544,6 +550,7 @@
         const body = {
           owner_name: $("ownerName").value,
           owner_background: $("ownerBg").value,
+          ai_read_enabled: $("aiReadEnabled").value === "1",
           reply_effect: $("replyEffect").value,
           reply_speed: $("replySpeed").value,
         };
