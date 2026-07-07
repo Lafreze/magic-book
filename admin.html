@@ -167,7 +167,8 @@
       }
 
       input,
-      textarea {
+      textarea,
+      select {
         width: 100%;
         padding: 11px 13px;
         font:
@@ -182,8 +183,16 @@
       }
 
       input:focus,
-      textarea:focus {
+      textarea:focus,
+      select:focus {
         border-color: rgba(231, 205, 147, 0.6);
+      }
+      select {
+        appearance: none;
+      }
+      select option {
+        background: #140e08;
+        color: #d8c8a4;
       }
       textarea {
         resize: vertical;
@@ -370,6 +379,26 @@
         <div class="hint" id="keyHint">
           留空则保持不变。Key 只保存在服务器端，不会下发给访客页面。
         </div>
+        <div class="hint" id="storageHint"></div>
+      </div>
+
+      <div class="card">
+        <h2>回 信 显 示</h2>
+        <label>书写特效</label>
+        <select id="replyEffect">
+          <option value="stroke">一笔一画</option>
+          <option value="fade">渐变浮现</option>
+          <option value="ink">墨水显现</option>
+        </select>
+        <label>书写速度</label>
+        <select id="replySpeed">
+          <option value="fast">较快</option>
+          <option value="normal">正常</option>
+          <option value="very_fast">最快</option>
+        </select>
+        <div class="hint">
+          保存后访客刷新或重新打开页面生效；默认使用较快速度。
+        </div>
       </div>
 
       <div class="card" id="securityCard">
@@ -448,6 +477,9 @@
         $("ownerBg").value = cfg.owner_background || "";
         $("model").value = cfg.model || "";
         $("baseUrl").value = cfg.openai_base_url || "";
+        $("replyEffect").value = cfg.reply_effect || "stroke";
+        $("replySpeed").value = cfg.reply_speed || "fast";
+        $("storageHint").textContent = `当前存储：${cfg.storage || "JSON 文件"}`;
         $("model").disabled = !!cfg.env_model;
         $("baseUrl").disabled = !!cfg.env_base;
         if (cfg.env_model || cfg.env_base)
@@ -512,6 +544,8 @@
         const body = {
           owner_name: $("ownerName").value,
           owner_background: $("ownerBg").value,
+          reply_effect: $("replyEffect").value,
+          reply_speed: $("replySpeed").value,
         };
         if (!$("model").disabled) body.model = $("model").value;
         if (!$("baseUrl").disabled) body.openai_base_url = $("baseUrl").value;

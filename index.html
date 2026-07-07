@@ -210,7 +210,7 @@
         z-index: 2;
       }
 
-      /* ── 日记的回信：每个汉字按笔顺一笔一画写出 ── */
+      /* ── 日记的回信：按管理员配置显示特效 ── */
       #replyLayer {
         position: absolute;
         inset: 0;
@@ -218,7 +218,7 @@
         padding: 50px 62px;
         pointer-events: none;
         color: var(--ink-diary);
-        transition: opacity 2.2s ease;
+        transition: opacity 1.4s ease;
         overflow: hidden;
       }
 
@@ -247,7 +247,7 @@
         padding: 0 2px;
       }
 
-      /* 标点 / 英文兜底：手写体墨晕淡入 */
+      /* 标点 / 英文 / 非笔顺效果：手写体逐字显现 */
       .fade-ch {
         font-family: "Ma Shan Zheng", "Kaiti SC", "STKaiti", "KaiTi", cursive;
         font-size: 34px;
@@ -256,12 +256,31 @@
         text-align: center;
         color: var(--ink-diary);
         opacity: 0;
-        animation: chFade 0.5s ease forwards;
+        animation: chFade var(--char-duration, 0.32s) ease forwards;
       }
 
       .cell.latin .fade-ch {
         font-family: "Caveat", cursive;
         font-size: 31px;
+      }
+
+      .fade-ch.reveal-gradient {
+        background: linear-gradient(
+          90deg,
+          rgba(59, 42, 21, 0.12),
+          rgba(59, 42, 21, 0.96),
+          rgba(59, 42, 21, 0.42)
+        );
+        background-size: 220% 100%;
+        -webkit-background-clip: text;
+        background-clip: text;
+        color: transparent;
+        animation: gradientReveal var(--char-duration, 0.34s) ease forwards;
+      }
+
+      .fade-ch.reveal-ink {
+        animation: inkReveal var(--char-duration, 0.42s) ease forwards;
+        transform-origin: 50% 60%;
       }
 
       @keyframes chFade {
@@ -272,6 +291,39 @@
         to {
           opacity: 0.92;
           filter: blur(0);
+        }
+      }
+
+      @keyframes gradientReveal {
+        from {
+          opacity: 0;
+          background-position: 100% 0;
+          filter: blur(3px);
+        }
+        to {
+          opacity: 0.94;
+          background-position: 0 0;
+          filter: blur(0);
+        }
+      }
+
+      @keyframes inkReveal {
+        0% {
+          opacity: 0;
+          filter: blur(7px);
+          transform: scale(1.12);
+          text-shadow: 0 0 18px rgba(59, 42, 21, 0.35);
+        }
+        58% {
+          opacity: 0.82;
+          filter: blur(2px);
+          transform: scale(1.03);
+        }
+        100% {
+          opacity: 0.95;
+          filter: blur(0);
+          transform: scale(1);
+          text-shadow: 0 0 0 rgba(59, 42, 21, 0);
         }
       }
 
@@ -432,7 +484,43 @@
       const INK_USER = "#2a2016";
       const INK_DIARY = "#3b2a15";
       const CJK = /[㐀-鿿]/;
+      const KANA = /[\u3040-\u30ff]/;
       const NARROW = /[，。、；：！？…·—''""「」『』《》（）,.!?;:'"()]/;
+      const REPLY_SPEEDS = {
+        normal: {
+          strokeSpeed: 4.4,
+          strokeDelay: 55,
+          revealStep: 120,
+          charPause: 45,
+          newlinePause: 160,
+          charDuration: 420,
+          holdBase: 2600,
+          holdPerChar: 85,
+          fadeOut: 1800,
+        },
+        fast: {
+          strokeSpeed: 7.2,
+          strokeDelay: 22,
+          revealStep: 72,
+          charPause: 18,
+          newlinePause: 90,
+          charDuration: 300,
+          holdBase: 1900,
+          holdPerChar: 55,
+          fadeOut: 1250,
+        },
+        very_fast: {
+          strokeSpeed: 10,
+          strokeDelay: 8,
+          revealStep: 42,
+          charPause: 8,
+          newlinePause: 45,
+          charDuration: 220,
+          holdBase: 1300,
+          holdPerChar: 35,
+          fadeOut: 900,
+        },
+      };
 
       let dpr = 1;
       let strokes = [];
@@ -443,6 +531,8 @@
       let autoReadTimer = null;
       let genId = 0; // “新的一页”可打断回信
       let serverAI = false;
+      let replyEffect = "stroke";
+      let replySpeed = "fast";
 
       const wait = (ms) => new Promise((r) => setTimeout(r, ms));
       const setStatus = (t) => {
@@ -589,7 +679,7 @@
       let workerPromise = null;
       function getWorker() {
         if (!workerPromise) {
-          workerPromise = Tesseract.createWorker("chi_sim+eng", 1, {
+          workerPromise = Tesseract.createWorker("chi_sim+eng+jpn", 1, {
             logger: (m) => {
               if (m.status === "recognizing text" && state === "reading")
                 setStatus(
@@ -603,9 +693,52 @@
 
       function cleanText(t) {
         return (t || "")
-          .replace(/\s+/g, "")
           .replace(/[|[\]{}<>~`^_=—*#]/g, "")
+          .replace(/[ \t]+\n/g, "\n")
+          .replace(/\n{3,}/g, "\n\n")
+          .replace(/([\u3400-\u9fff\u3040-\u30ff])\s+(?=[\u3400-\u9fff\u3040-\u30ff])/g, "$1")
           .trim();
+      }
+
+      function detectLanguage(text) {
+        if (KANA.test(text || "")) return "ja";
+        const hasLatin = /[A-Za-z]/.test(text || "");
+        const hasCjk = /[\u3400-\u9fff]/.test(text || "");
+        if (hasLatin && !hasCjk) return "en";
+        return "zh";
+      }
+
+      function normalizeRecognition(data) {
+        const text = cleanText(data && data.text);
+        const description = cleanText(
+          (data && (data.description || data.image_context)) || "",
+        );
+        let type = ((data && data.type) || "").toLowerCase();
+        if (!["text", "drawing", "empty"].includes(type)) {
+          type = text ? "text" : description ? "drawing" : "empty";
+        }
+        if (text) type = "text";
+        if (!text && type === "text") type = "empty";
+        if (description && type === "empty") type = "drawing";
+        const rawLanguage = ((data && data.language) || "").toLowerCase();
+        const language = ["zh", "en", "ja"].includes(rawLanguage)
+          ? rawLanguage
+          : detectLanguage(text || description);
+        return { type, text, description, language };
+      }
+
+      function normalizeReplyEffect(value) {
+        return ["stroke", "fade", "ink"].includes(value) ? value : "stroke";
+      }
+
+      function normalizeReplySpeed(value) {
+        return ["normal", "fast", "very_fast"].includes(value)
+          ? value
+          : "fast";
+      }
+
+      function speedProfile() {
+        return REPLY_SPEEDS[replySpeed] || REPLY_SPEEDS.fast;
       }
 
       async function recognize(image) {
@@ -617,7 +750,7 @@
           });
           if (r.ok) {
             const d = await r.json();
-            return cleanText(d.text);
+            return normalizeRecognition(d);
           }
           setStatus("它的眼睛有些模糊，改用旧法辨认……");
         }
@@ -625,27 +758,75 @@
           throw new Error("ocr_unavailable");
         const worker = await getWorker();
         const { data } = await worker.recognize(image);
-        return cleanText(data.text);
+        const text = cleanText(data.text);
+        return {
+          type: text ? "text" : "empty",
+          text,
+          description: "",
+          language: detectLanguage(text),
+        };
       }
 
       /* ── 回信：GPT 优先，本地兜底 ── */
-      async function getReply(text) {
+      async function getReply(input) {
+        const payload = {
+          text: input.text || "",
+          image_context: input.description || "",
+          input_type: input.type || (input.text ? "text" : "drawing"),
+          language: input.language || detectLanguage(input.text || input.description),
+        };
         try {
           const r = await fetch("/api/chat", {
             method: "POST",
             headers: apiHeaders,
-            body: JSON.stringify({ text }),
+            body: JSON.stringify(payload),
           });
           if (r.ok) {
             const d = await r.json();
             if (d.reply) return d.reply;
           }
         } catch (_) {}
-        return localReply(text);
+        return localReply(payload);
       }
 
-      function localReply(text) {
-        if (!text) return "墨迹在纸上晕开了。\n写得再大一些，慢一些。";
+      function localReply(input) {
+        const text = input.text || "";
+        const description = input.image_context || "";
+        const language = input.language || detectLanguage(text || description);
+        if (!text && description) {
+          if (language === "en")
+            return `I see ${description}.\nThe page remembers its shape.`;
+          if (language === "ja")
+            return `${description}が見える。\n紙はその影を覚えている。`;
+          return `我看见了${description}。\n纸页记住了它的轮廓。`;
+        }
+        if (!text) {
+          if (language === "en") return "The ink has blurred.\nWrite larger, slowly.";
+          if (language === "ja") return "墨がにじんだ。\nもう少し大きく、ゆっくり書いて。";
+          return "墨迹在纸上晕开了。\n写得再大一些，慢一些。";
+        }
+        if (language === "en") {
+          const pool = [
+            `"${text}"...\nThe page grows warm beneath the word.`,
+            `I remember "${text}".\nSomeone wrote it here long ago.`,
+            `"${text}".\nInk remembers longer than people do.`,
+            `Your pen paused on "${text}".\nWhy?`,
+          ];
+          let h = 0;
+          for (const c of text) h = (h * 31 + c.codePointAt(0)) >>> 0;
+          return pool[h % pool.length];
+        }
+        if (language === "ja") {
+          const pool = [
+            `「${text}」……\nその言葉で紙がかすかに熱を持つ。`,
+            `「${text}」を覚えている。\n昔も誰かがここに書いた。`,
+            `「${text}」。\n墨は人より長く覚えている。`,
+            `「${text}」を書く時、\n君の筆先は少し止まった。なぜ？`,
+          ];
+          let h = 0;
+          for (const c of text) h = (h * 31 + c.codePointAt(0)) >>> 0;
+          return pool[h % pool.length];
+        }
         const pool = [
           `「${text}」……\n这个词让我的书页微微发烫。`,
           `我认得「${text}」。\n很久以前，也有人在我身上写下过它。`,
@@ -658,7 +839,7 @@
       }
 
       /* ── 回信：每个汉字按笔顺一笔一画写出 ── */
-      function strokeChar(cell, ch) {
+      function strokeChar(cell, ch, profile) {
         return new Promise((resolve) => {
           let settled = false;
           const finish = () => {
@@ -675,28 +856,35 @@
               showOutline: false,
               showCharacter: false,
               strokeColor: INK_DIARY,
-              strokeAnimationSpeed: 3.2, // 一笔一笔的速度
-              delayBetweenStrokes: 90, // 笔画之间的停顿
+              strokeAnimationSpeed: profile.strokeSpeed,
+              delayBetweenStrokes: profile.strokeDelay,
               onLoadCharDataError: () => {
                 cell.innerHTML = "";
-                fadeChar(cell, ch);
-                setTimeout(finish, 300);
+                fadeChar(cell, ch, "ink", profile);
+                setTimeout(finish, profile.charDuration);
               },
             });
             writer.animateCharacter({ onComplete: finish });
           } catch (_) {
             cell.innerHTML = "";
-            fadeChar(cell, ch);
-            setTimeout(finish, 300);
+            fadeChar(cell, ch, "ink", profile);
+            setTimeout(finish, profile.charDuration);
           }
-          setTimeout(finish, 12000); // 兜底：单字最多等 12 秒
+          setTimeout(finish, 6500);
         });
       }
 
-      function fadeChar(cell, ch) {
+      function fadeChar(cell, ch, effect, profile) {
         const s = document.createElement("span");
-        s.className = "fade-ch";
+        const cls =
+          effect === "ink"
+            ? " reveal-ink"
+            : effect === "fade"
+              ? " reveal-gradient"
+              : "";
+        s.className = "fade-ch" + cls;
         s.textContent = ch;
+        s.style.setProperty("--char-duration", profile.charDuration + "ms");
         cell.appendChild(s);
       }
 
@@ -707,7 +895,11 @@
 
       async function writeReply(text) {
         const my = genId;
+        const effect = normalizeReplyEffect(replyEffect);
+        const profile = speedProfile();
+        replyLayer.className = `effect-${effect}`;
         replyLayer.style.opacity = 1;
+        replyLayer.style.transitionDuration = profile.fadeOut + "ms";
         replyLayer.innerHTML = "";
         for (const ch of text) {
           if (my !== genId) return;
@@ -715,7 +907,7 @@
           if (my !== genId) return;
           if (ch === "\n") {
             replyLayer.appendChild(document.createElement("br"));
-            await wait(300);
+            await wait(profile.newlinePause);
             continue;
           }
           if (ch === " " || ch === "　") {
@@ -737,20 +929,22 @@
             (Math.random() * 2 - 1).toFixed(1) + "px",
           );
           replyLayer.appendChild(cell);
-          if (CJK.test(ch) && window.HanziWriter) {
-            await strokeChar(cell, ch); // 等这个字一笔一笔写完，再写下一个
+          if (effect === "stroke" && CJK.test(ch) && window.HanziWriter) {
+            await strokeChar(cell, ch, profile);
           } else {
-            fadeChar(cell, ch);
-            await wait(200);
+            fadeChar(cell, ch, effect === "stroke" ? "ink" : effect, profile);
+            await wait(profile.revealStep);
           }
           if (my !== genId) return;
-          await wait(90); // 字与字之间提笔的停顿
+          await wait(profile.charPause);
         }
       }
 
       function fadeReplyLayer() {
+        const profile = speedProfile();
+        replyLayer.style.transitionDuration = profile.fadeOut + "ms";
         replyLayer.style.opacity = 0;
-        return wait(2300).then(() => {
+        return wait(profile.fadeOut).then(() => {
           replyLayer.innerHTML = "";
           replyLayer.style.opacity = 1;
         });
@@ -766,29 +960,32 @@
         setStatus("它在辨认你的字迹……");
 
         const image = snapshot();
-        let text = "";
+        let recognition = normalizeRecognition({});
         let failed = false;
         const [, recognized] = await Promise.all([
           absorbInk(),
           recognize(image).catch((err) => {
             console.error(err);
             failed = true;
-            return "";
+            return normalizeRecognition({});
           }),
         ]);
-        text = recognized;
+        recognition = recognized;
         sheet.classList.remove("reading");
 
         let reply;
         if (failed) {
           setStatus("一层雾挡住了它的视线（识别服务不可用）。");
           reply = "今夜雾很重，\n我看不清你的字。";
-        } else if (!text) {
+        } else if (recognition.type === "drawing" && recognition.description) {
+          setStatus("它看见了纸上的图，正提笔回信……");
+          reply = await getReply(recognition);
+        } else if (!recognition.text) {
           setStatus("它没有读出文字。");
           reply = "墨迹晕开了。\n写得再大一些，慢一些。";
         } else {
-          setStatus(`它读到了：「${text}」，正提笔回信……`);
-          reply = await getReply(text);
+          setStatus(`它读到了：「${recognition.text}」，正提笔回信……`);
+          reply = await getReply(recognition);
         }
 
         state = "replying";
@@ -796,7 +993,8 @@
         setStatus("它在回信。");
         await writeReply(reply);
         if (my === genId) {
-          await wait(3200 + reply.length * 130);
+          const profile = speedProfile();
+          await wait(profile.holdBase + reply.length * profile.holdPerChar);
           if (my === genId) await fadeReplyLayer();
         }
         if (my === genId) {
@@ -834,6 +1032,8 @@
         .then((r) => r.json())
         .then((s) => {
           serverAI = !!s.ai;
+          replyEffect = normalizeReplyEffect(s.reply_effect);
+          replySpeed = normalizeReplySpeed(s.reply_speed);
           if (!serverAI) {
             aiToggle.checked = false;
             aiToggle.disabled = true;
