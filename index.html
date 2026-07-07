@@ -477,6 +477,7 @@
       let lastTime = 0;
       let state = "idle"; // idle | reading | replying
       let autoReadTimer = null;
+      let inkFrame = 0;
       let genId = 0; // 清页或重新生成时打断回信
       let serverAI = false;
       let replyEffect = "stroke";
@@ -524,10 +525,11 @@
         } catch (_) {}
         clearTimeout(autoReadTimer);
         const p = getPoint(e);
-        currentStroke = { points: [{ ...p, w: 4.6 }] };
+        currentStroke = { points: [{ ...p, w: 5.4 }] };
         strokes.push(currentStroke);
         lastPoint = p;
         lastTime = performance.now();
+        drawStrokes();
       });
 
       canvas.addEventListener("pointermove", (e) => {
@@ -543,13 +545,15 @@
       function drawPoint(p) {
         const now = performance.now();
         const dist = Math.hypot(p.x - lastPoint.x, p.y - lastPoint.y);
-        if (dist < 0.7) return;
+        if (dist < 1.15) return;
         const speed = dist / Math.max(now - lastTime, 1);
-        const w = Math.max(2.2, Math.min(6.4, 6.2 - speed * 2.3));
+        const targetW = Math.max(3.4, Math.min(7.2, 7 - speed * 1.8));
+        const prevW = currentStroke.points[currentStroke.points.length - 1].w;
+        const w = prevW * 0.72 + targetW * 0.28;
         currentStroke.points.push({ ...p, w });
-        drawSegment(lastPoint, p, w);
         lastPoint = p;
         lastTime = now;
+        scheduleInkDraw();
       }
 
       function endStroke() {
@@ -565,41 +569,100 @@
       canvas.addEventListener("pointercancel", endStroke);
       canvas.addEventListener("contextmenu", (e) => e.preventDefault());
 
-      function drawSegment(a, b, w) {
-        ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
-        ctx.filter = "none";
-        ctx.globalAlpha = 1;
-        ctx.strokeStyle = INK_USER;
+      function scheduleInkDraw() {
+        if (inkFrame) return;
+        inkFrame = requestAnimationFrame(() => {
+          inkFrame = 0;
+          drawStrokes();
+        });
+      }
+
+      function inkColor(dry = 0, alpha = 1) {
+        const r = Math.round(36 + dry * 70);
+        const g = Math.round(26 + dry * 50);
+        const b = Math.round(14 + dry * 36);
+        return `rgba(${r}, ${g}, ${b}, ${alpha})`;
+      }
+
+      function smoothPath(points, yOffset = 0) {
+        const path = new Path2D();
+        if (points.length === 1) {
+          const p = points[0];
+          path.arc(p.x, p.y + yOffset, p.w * 0.45, 0, Math.PI * 2);
+          return path;
+        }
+        path.moveTo(points[0].x, points[0].y + yOffset);
+        for (let i = 1; i < points.length - 1; i++) {
+          const p = points[i];
+          const next = points[i + 1];
+          const mx = (p.x + next.x) / 2;
+          const my = (p.y + next.y) / 2 + yOffset;
+          path.quadraticCurveTo(p.x, p.y + yOffset, mx, my);
+        }
+        const last = points[points.length - 1];
+        path.lineTo(last.x, last.y + yOffset);
+        return path;
+      }
+
+      function avgWidth(points) {
+        if (!points.length) return 5;
+        return points.reduce((sum, p) => sum + p.w, 0) / points.length;
+      }
+
+      function drawInkStroke(stroke, alpha = 1, blur = 0, yOffset = 0, dry = 0) {
+        const points = stroke.points;
+        if (!points.length) return;
+        const width = avgWidth(points) * (1 - dry * 0.16);
+        if (points.length === 1) {
+          const p = points[0];
+          ctx.save();
+          ctx.globalAlpha = alpha;
+          ctx.filter = blur > 0 ? `blur(${blur + 2}px)` : "blur(2px)";
+          ctx.fillStyle = inkColor(dry, 0.22);
+          ctx.beginPath();
+          ctx.arc(p.x, p.y + yOffset, width * 0.82, 0, Math.PI * 2);
+          ctx.fill();
+          ctx.filter = blur > 0 ? `blur(${blur * 0.45}px)` : "none";
+          ctx.fillStyle = inkColor(dry, 0.88);
+          ctx.beginPath();
+          ctx.arc(p.x, p.y + yOffset, width * 0.42, 0, Math.PI * 2);
+          ctx.fill();
+          ctx.restore();
+          return;
+        }
+        const path = smoothPath(points, yOffset);
+
+        ctx.save();
         ctx.lineCap = "round";
         ctx.lineJoin = "round";
-        ctx.lineWidth = w;
-        ctx.beginPath();
-        ctx.moveTo(a.x, a.y);
-        ctx.lineTo(b.x, b.y);
-        ctx.stroke();
+        ctx.globalAlpha = alpha;
+
+        ctx.filter = blur > 0 ? `blur(${blur + 2.2}px)` : "blur(2.2px)";
+        ctx.strokeStyle = inkColor(dry, 0.2);
+        ctx.lineWidth = width + 3.8;
+        ctx.stroke(path);
+
+        ctx.filter = blur > 0 ? `blur(${blur * 0.45}px)` : "none";
+        ctx.strokeStyle = inkColor(dry, 0.92);
+        ctx.lineWidth = width;
+        ctx.stroke(path);
+
+        ctx.filter = "blur(0.6px)";
+        ctx.strokeStyle = inkColor(dry, 0.28);
+        ctx.lineWidth = Math.max(1.2, width * 0.42);
+        ctx.stroke(path);
+        ctx.restore();
       }
 
       function drawStrokes(alpha = 1, blur = 0, sink = 0, dry = 0) {
+        if (inkFrame) {
+          cancelAnimationFrame(inkFrame);
+          inkFrame = 0;
+        }
         ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
         ctx.clearRect(0, 0, canvas.width, canvas.height);
-        ctx.filter = blur > 0 ? `blur(${blur}px)` : "none";
-        ctx.globalAlpha = alpha;
-        const r = Math.round(42 + dry * 64);
-        const g = Math.round(32 + dry * 44);
-        const b = Math.round(22 + dry * 30);
-        ctx.strokeStyle = `rgb(${r}, ${g}, ${b})`;
-        ctx.lineCap = "round";
-        ctx.lineJoin = "round";
         for (const s of strokes) {
-          for (let i = 1; i < s.points.length; i++) {
-            const a = s.points[i - 1],
-              b = s.points[i];
-            ctx.lineWidth = ((a.w + b.w) / 2) * (1 - dry * 0.18);
-            ctx.beginPath();
-            ctx.moveTo(a.x, a.y + sink);
-            ctx.lineTo(b.x, b.y + sink);
-            ctx.stroke();
-          }
+          drawInkStroke(s, alpha, blur, sink, dry);
         }
         ctx.filter = "none";
         ctx.globalAlpha = 1;
@@ -627,6 +690,7 @@
 
       /* ── 手写 → 图片（白底便于识别） ── */
       function snapshot() {
+        drawStrokes();
         const off = document.createElement("canvas");
         off.width = canvas.width;
         off.height = canvas.height;
