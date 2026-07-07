@@ -1,0 +1,567 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>魔法书 · 手写识别</title>
+
+  <!-- 手写识别 OCR：需要联网加载 CDN -->
+  <script src="https://cdn.jsdelivr.net/npm/tesseract.js@5/dist/tesseract.min.js"></script>
+
+  <style>
+    * {
+      box-sizing: border-box;
+    }
+
+    body {
+      margin: 0;
+      min-height: 100vh;
+      font-family: "Microsoft YaHei", "PingFang SC", system-ui, sans-serif;
+      color: #f8eac8;
+      background:
+        radial-gradient(circle at top, rgba(130, 89, 255, 0.28), transparent 35%),
+        linear-gradient(135deg, #120919, #22112f 45%, #0c0610);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      padding: 24px;
+      overflow-x: hidden;
+    }
+
+    .magic-book {
+      width: min(1100px, 100%);
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 18px;
+      padding: 24px;
+      border-radius: 28px;
+      background:
+        linear-gradient(90deg, rgba(255, 222, 154, 0.08), rgba(255, 255, 255, 0.02)),
+        #2a1735;
+      box-shadow:
+        0 0 40px rgba(175, 110, 255, 0.25),
+        inset 0 0 30px rgba(255, 236, 180, 0.08);
+      position: relative;
+    }
+
+    .magic-book::before {
+      content: "";
+      position: absolute;
+      top: 24px;
+      bottom: 24px;
+      left: 50%;
+      width: 8px;
+      transform: translateX(-50%);
+      border-radius: 999px;
+      background: linear-gradient(#8a5f2f, #e0b36f, #8a5f2f);
+      box-shadow: 0 0 18px rgba(255, 206, 119, 0.45);
+    }
+
+    .page {
+      min-height: 660px;
+      padding: 28px;
+      border-radius: 22px;
+      background:
+        radial-gradient(circle at top left, rgba(255,255,255,.35), transparent 30%),
+        linear-gradient(135deg, #f8e4b6, #e8c98f);
+      color: #3f2714;
+      box-shadow:
+        inset 0 0 18px rgba(95, 55, 20, 0.25),
+        0 8px 20px rgba(0, 0, 0, 0.25);
+      position: relative;
+      overflow: hidden;
+    }
+
+    .page::after {
+      content: "";
+      position: absolute;
+      inset: 0;
+      background-image:
+        linear-gradient(rgba(88, 52, 20, 0.08) 1px, transparent 1px);
+      background-size: 100% 34px;
+      pointer-events: none;
+      opacity: .55;
+    }
+
+    .content {
+      position: relative;
+      z-index: 1;
+    }
+
+    h1, h2 {
+      margin: 0 0 16px;
+      letter-spacing: 1px;
+    }
+
+    h1 {
+      font-size: 30px;
+      text-align: center;
+      color: #5c2e12;
+      text-shadow: 0 1px 0 rgba(255,255,255,.45);
+    }
+
+    h2 {
+      font-size: 22px;
+      color: #4b2812;
+    }
+
+    .hint {
+      margin: 0 0 18px;
+      line-height: 1.7;
+      color: #6a4322;
+      font-size: 14px;
+    }
+
+    .canvas-wrap {
+      padding: 10px;
+      border: 2px solid rgba(83, 45, 16, 0.45);
+      border-radius: 18px;
+      background: rgba(255, 248, 226, 0.8);
+      box-shadow: inset 0 0 12px rgba(112, 70, 28, .15);
+    }
+
+    canvas {
+      width: 100%;
+      height: 280px;
+      display: block;
+      border-radius: 12px;
+      background: #fffaf0;
+      cursor: crosshair;
+      touch-action: none;
+    }
+
+    .toolbar {
+      margin-top: 16px;
+      display: grid;
+      grid-template-columns: repeat(3, 1fr);
+      gap: 10px;
+    }
+
+    button {
+      border: 0;
+      border-radius: 999px;
+      padding: 13px 14px;
+      font-size: 15px;
+      font-weight: 700;
+      color: #fff3cd;
+      background: linear-gradient(135deg, #5d2c9c, #a45cff);
+      box-shadow: 0 5px 0 #3b1769, 0 0 14px rgba(148, 88, 255, .22);
+      cursor: pointer;
+      transition: transform .12s ease, box-shadow .12s ease, opacity .12s ease;
+    }
+
+    button:hover {
+      transform: translateY(-2px);
+      box-shadow: 0 7px 0 #3b1769, 0 0 18px rgba(148, 88, 255, .4);
+    }
+
+    button:active {
+      transform: translateY(2px);
+      box-shadow: 0 3px 0 #3b1769;
+    }
+
+    button.secondary {
+      background: linear-gradient(135deg, #6b4521, #d89a45);
+      box-shadow: 0 5px 0 #563214, 0 0 14px rgba(216, 154, 69, .22);
+    }
+
+    button.danger {
+      background: linear-gradient(135deg, #702433, #e75a73);
+      box-shadow: 0 5px 0 #4f1320, 0 0 14px rgba(231, 90, 115, .22);
+    }
+
+    button:disabled {
+      opacity: .55;
+      cursor: not-allowed;
+      transform: none;
+    }
+
+    .status {
+      margin-top: 14px;
+      min-height: 26px;
+      color: #74461e;
+      font-weight: 700;
+    }
+
+    .result-box {
+      margin-top: 16px;
+      padding: 16px;
+      border-radius: 18px;
+      background: rgba(255, 250, 237, 0.68);
+      border: 1px solid rgba(80, 45, 18, .18);
+    }
+
+    .label {
+      font-size: 13px;
+      color: #7a4f26;
+      font-weight: 800;
+      margin-bottom: 8px;
+    }
+
+    .recognized {
+      min-height: 76px;
+      padding: 12px;
+      border-radius: 14px;
+      background: rgba(255, 255, 255, .62);
+      color: #302015;
+      line-height: 1.7;
+      white-space: pre-wrap;
+    }
+
+    .reply {
+      margin-top: 16px;
+      min-height: 220px;
+      padding: 18px;
+      border-radius: 18px;
+      color: #f9e9c4;
+      line-height: 1.75;
+      background:
+        radial-gradient(circle at top right, rgba(255, 222, 122, .18), transparent 35%),
+        linear-gradient(135deg, #241033, #3d1c59);
+      box-shadow:
+        inset 0 0 18px rgba(255, 226, 151, .1),
+        0 0 20px rgba(129, 71, 255, .18);
+      white-space: pre-wrap;
+    }
+
+    .spell-card {
+      display: grid;
+      gap: 10px;
+      margin-top: 16px;
+    }
+
+    .spell {
+      padding: 12px 14px;
+      border-radius: 14px;
+      background: rgba(255, 255, 255, .42);
+      color: #4d2a12;
+      font-weight: 700;
+      cursor: pointer;
+      border: 1px solid rgba(88, 52, 20, .15);
+    }
+
+    .spell:hover {
+      background: rgba(255, 255, 255, .68);
+    }
+
+    .glow {
+      animation: glow 1.2s ease;
+    }
+
+    @keyframes glow {
+      0% { box-shadow: 0 0 0 rgba(168, 96, 255, 0); }
+      50% { box-shadow: 0 0 34px rgba(168, 96, 255, .75); }
+      100% { box-shadow: 0 0 0 rgba(168, 96, 255, 0); }
+    }
+
+    @media (max-width: 860px) {
+      body {
+        padding: 12px;
+      }
+
+      .magic-book {
+        grid-template-columns: 1fr;
+      }
+
+      .magic-book::before {
+        display: none;
+      }
+
+      .page {
+        min-height: auto;
+      }
+
+      .toolbar {
+        grid-template-columns: 1fr;
+      }
+    }
+  </style>
+</head>
+
+<body>
+  <main class="magic-book">
+    <section class="page">
+      <div class="content">
+        <h1>✦ 魔法书 ✦</h1>
+        <p class="hint">
+          在下面手写一个咒语，比如：火球、治疗、金币、传送、天气、你好。<br>
+          点击“识别咒语”后，会先输出识别文字，再生成魔法书回复。
+        </p>
+
+        <div class="canvas-wrap">
+          <canvas id="drawCanvas"></canvas>
+        </div>
+
+        <div class="toolbar">
+          <button id="recognizeBtn">识别咒语</button>
+          <button id="demoBtn" class="secondary">随机咒语</button>
+          <button id="clearBtn" class="danger">清空书页</button>
+        </div>
+
+        <div id="status" class="status">请在羊皮纸上手写咒语。</div>
+
+        <div class="result-box">
+          <div class="label">识别结果</div>
+          <div id="recognizedText" class="recognized">等待识别……</div>
+        </div>
+
+        <div class="spell-card">
+          <div class="spell" data-spell="火球">示例：火球</div>
+          <div class="spell" data-spell="治疗">示例：治疗</div>
+          <div class="spell" data-spell="金币">示例：金币</div>
+          <div class="spell" data-spell="传送">示例：传送</div>
+        </div>
+      </div>
+    </section>
+
+    <section class="page">
+      <div class="content">
+        <h2>魔法书回复</h2>
+        <p class="hint">
+          这里是识别后的输出区域。你可以把本地回复逻辑换成 AI 接口，做成真正的魔法对话书。
+        </p>
+
+        <div id="replyBox" class="reply">
+          魔法书正在沉睡……
+          写下一个咒语唤醒它。
+        </div>
+
+        <div class="result-box">
+          <div class="label">接口接入提示</div>
+          <div class="recognized">
+前端不要直接放 OpenAI / 其他 AI Key。
+安全做法是：
+
+1. 前端识别手写文字
+2. fetch('/api/chat', { text: 识别结果 })
+3. 后端调用 AI
+4. 前端显示 AI 回复
+          </div>
+        </div>
+      </div>
+    </section>
+  </main>
+
+  <script>
+    const canvas = document.getElementById("drawCanvas");
+    const ctx = canvas.getContext("2d");
+    const recognizeBtn = document.getElementById("recognizeBtn");
+    const clearBtn = document.getElementById("clearBtn");
+    const demoBtn = document.getElementById("demoBtn");
+    const statusEl = document.getElementById("status");
+    const recognizedTextEl = document.getElementById("recognizedText");
+    const replyBox = document.getElementById("replyBox");
+
+    let drawing = false;
+    let lastX = 0;
+    let lastY = 0;
+
+    function resizeCanvas() {
+      const rect = canvas.getBoundingClientRect();
+      const temp = document.createElement("canvas");
+      temp.width = canvas.width;
+      temp.height = canvas.height;
+      temp.getContext("2d").drawImage(canvas, 0, 0);
+
+      canvas.width = Math.floor(rect.width * window.devicePixelRatio);
+      canvas.height = Math.floor(280 * window.devicePixelRatio);
+
+      ctx.scale(window.devicePixelRatio, window.devicePixelRatio);
+      ctx.lineCap = "round";
+      ctx.lineJoin = "round";
+      ctx.lineWidth = 8;
+      ctx.strokeStyle = "#20130c";
+
+      fillCanvasWhite();
+
+      if (temp.width && temp.height) {
+        ctx.drawImage(temp, 0, 0, rect.width, 280);
+      }
+    }
+
+    function fillCanvasWhite() {
+      const rect = canvas.getBoundingClientRect();
+      ctx.save();
+      ctx.fillStyle = "#fffaf0";
+      ctx.fillRect(0, 0, rect.width, 280);
+      ctx.restore();
+    }
+
+    function getPoint(event) {
+      const rect = canvas.getBoundingClientRect();
+      const e = event.touches ? event.touches[0] : event;
+      return {
+        x: e.clientX - rect.left,
+        y: e.clientY - rect.top
+      };
+    }
+
+    function startDraw(event) {
+      event.preventDefault();
+      drawing = true;
+      const point = getPoint(event);
+      lastX = point.x;
+      lastY = point.y;
+    }
+
+    function draw(event) {
+      if (!drawing) return;
+      event.preventDefault();
+
+      const point = getPoint(event);
+      ctx.beginPath();
+      ctx.moveTo(lastX, lastY);
+      ctx.lineTo(point.x, point.y);
+      ctx.stroke();
+
+      lastX = point.x;
+      lastY = point.y;
+    }
+
+    function stopDraw() {
+      drawing = false;
+    }
+
+    function clearCanvas() {
+      fillCanvasWhite();
+      recognizedTextEl.textContent = "等待识别……";
+      replyBox.textContent = "魔法书重新合上了。\n写下新的咒语吧。";
+      statusEl.textContent = "书页已清空。";
+    }
+
+    async function recognizeSpell() {
+      recognizeBtn.disabled = true;
+      statusEl.textContent = "正在解析墨迹中的魔力……";
+      recognizedTextEl.textContent = "识别中……";
+      replyBox.textContent = "水晶球正在聚焦……";
+
+      try {
+        const image = canvas.toDataURL("image/png");
+
+        const result = await Tesseract.recognize(
+          image,
+          "chi_sim+eng",
+          {
+            logger: message => {
+              if (message.status === "recognizing text") {
+                const progress = Math.round(message.progress * 100);
+                statusEl.textContent = `正在识别咒语：${progress}%`;
+              }
+            }
+          }
+        );
+
+        const text = cleanText(result.data.text);
+        recognizedTextEl.textContent = text || "没有识别到文字，请写大一点、慢一点。";
+
+        const reply = await getMagicReply(text);
+        showReply(reply);
+      } catch (error) {
+        console.error(error);
+        recognizedTextEl.textContent = "识别失败。";
+        replyBox.textContent = "魔法书被一阵奇怪的雾挡住了，请检查网络或刷新页面。";
+        statusEl.textContent = "识别失败。";
+      } finally {
+        recognizeBtn.disabled = false;
+      }
+    }
+
+    function cleanText(text) {
+      return text
+        .replace(/\s+/g, "")
+        .replace(/[|[\]{}<>~`^]/g, "")
+        .trim();
+    }
+
+    async function getMagicReply(text) {
+      // 本地回复逻辑：不用后端也能跑
+      if (!text) {
+        return "我没有看清你的咒语。\n\n提示：字写大一点，笔画尽量连贯，背景保持干净。";
+      }
+
+      const normalized = text.toLowerCase();
+
+      if (text.includes("火") || normalized.includes("fire")) {
+        return "🔥 火焰回应了你。\n\n魔法书：你召唤出一团稳定的火球。适合攻击、点燃火把，或者吓跑一只过分自信的史莱姆。";
+      }
+
+      if (text.includes("治疗") || text.includes("回复") || text.includes("治愈") || normalized.includes("heal")) {
+        return "✨ 温柔的光落在书页上。\n\n魔法书：治疗术生效。生命恢复，疲劳减少，心情也顺便 +10。";
+      }
+
+      if (text.includes("金币") || text.includes("钱") || text.includes("财") || normalized.includes("gold")) {
+        return "🪙 书页边缘响起金币滚动声。\n\n魔法书：财富咒语触发。获得金币，但请注意：贪婪会让宝箱长牙。";
+      }
+
+      if (text.includes("传送") || text.includes("移动") || normalized.includes("move") || normalized.includes("teleport")) {
+        return "🌀 空间开始折叠。\n\n魔法书：传送门已打开。你可以移动到指定地点，但落点可能会有一点点戏剧性。";
+      }
+
+      if (text.includes("天气") || text.includes("雨") || text.includes("雪") || text.includes("风")) {
+        return "☁️ 天象符文亮起。\n\n魔法书：天气魔法启动。天空会听你的，但它不一定完全服从。";
+      }
+
+      if (text.includes("你好") || normalized.includes("hello") || normalized.includes("hi")) {
+        return "📖 魔法书醒了。\n\n魔法书：你好，年轻的书写者。今天想问命运，还是想偷偷改一下命运？";
+      }
+
+      return `📜 咒语「${text}」已记录。\n\n魔法书：这是一个未知咒语。我感到它里面有一点混沌、一点灵感，还有一点“程序员凌晨两点还在改 UI”的气息。`;
+    }
+
+    function showReply(reply) {
+      replyBox.textContent = reply;
+      replyBox.classList.remove("glow");
+      void replyBox.offsetWidth;
+      replyBox.classList.add("glow");
+      statusEl.textContent = "识别完成。";
+    }
+
+    function useDemoSpell(spell) {
+      recognizedTextEl.textContent = spell;
+      getMagicReply(spell).then(showReply);
+      statusEl.textContent = `已使用示例咒语：${spell}`;
+    }
+
+    function randomSpell() {
+      const spells = ["火球", "治疗", "金币", "传送", "天气", "你好"];
+      useDemoSpell(spells[Math.floor(Math.random() * spells.length)]);
+    }
+
+    canvas.addEventListener("mousedown", startDraw);
+    canvas.addEventListener("mousemove", draw);
+    window.addEventListener("mouseup", stopDraw);
+
+    canvas.addEventListener("touchstart", startDraw, { passive: false });
+    canvas.addEventListener("touchmove", draw, { passive: false });
+    window.addEventListener("touchend", stopDraw);
+
+    clearBtn.addEventListener("click", clearCanvas);
+    recognizeBtn.addEventListener("click", recognizeSpell);
+    demoBtn.addEventListener("click", randomSpell);
+
+    document.querySelectorAll(".spell").forEach(item => {
+      item.addEventListener("click", () => {
+        useDemoSpell(item.dataset.spell);
+      });
+    });
+
+    window.addEventListener("resize", resizeCanvas);
+    resizeCanvas();
+
+    /*
+      如果你要接自己的 AI 后端，把 getMagicReply 换成这样：
+
+      async function getMagicReply(text) {
+        const res = await fetch("/api/chat", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ text })
+        });
+
+        const data = await res.json();
+        return data.reply;
+      }
+    */
+  </script>
+</body>
+</html>

@@ -1,0 +1,2 @@
+# 无第三方依赖：server.py 只使用 Python 标准库。
+# 此文件用于让 Railway (Nixpacks) 识别为 Python 项目。

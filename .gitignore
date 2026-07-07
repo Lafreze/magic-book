@@ -1,0 +1,7 @@
+# 运行时数据：包含 API Key、管理密码与访问统计，绝不能提交
+config.json
+data.json
+*.tmp
+
+.DS_Store
+__pycache__/
