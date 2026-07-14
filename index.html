@@ -20,10 +20,14 @@
       }
 
       :root {
-        --ink-user: #2a2016; /* 书写者的墨 */
-        --ink-diary: #3b2a15; /* 日记回信的墨（偏褐的旧墨水） */
-        --gold: #c9b183;
-        --gold-dim: #8f7c58;
+        --ink-user: #171a18;
+        --ink-diary: #252724;
+        --paper: #e9e5da;
+        --paper-deep: #d8d1c2;
+        --paper-edge: #b9b09f;
+        --surface: #171817;
+        --surface-raised: #222320;
+        --muted: #a69e8e;
       }
 
       html,
@@ -38,18 +42,15 @@
         font-family:
           "Ma Shan Zheng", "Klee One", "Caveat", "Kaiti SC", "STKaiti",
           cursive;
-        background: radial-gradient(
-          1300px 900px at 50% 28%,
-          #2b2117,
-          #180f08 55%,
-          #0a0603 100%
-        );
+        background:
+          linear-gradient(180deg, rgba(255, 255, 255, 0.025), transparent 26%),
+          linear-gradient(135deg, var(--surface-raised), var(--surface));
         display: flex;
         flex-direction: column;
         align-items: center;
         justify-content: center;
         padding: 22px 14px;
-        color: var(--gold-dim);
+        color: var(--muted);
         overflow: hidden;
         user-select: none;
         -webkit-user-select: none;
@@ -64,91 +65,50 @@
         -webkit-touch-callout: none;
       }
 
-      /* 摇曳的烛光氛围 */
+      /* 桌面上很轻的环境光与材质颗粒 */
       .candlelight {
         position: fixed;
         inset: 0;
         pointer-events: none;
-        background: radial-gradient(
-          760px 520px at 50% 44%,
-          rgba(255, 186, 96, 0.1),
-          transparent 70%
-        );
-        animation: flicker 7s ease-in-out infinite;
-      }
-
-      @keyframes flicker {
-        0%,
-        100% {
-          opacity: 0.8;
-        }
-        23% {
-          opacity: 1;
-        }
-        41% {
-          opacity: 0.72;
-        }
-        67% {
-          opacity: 0.95;
-        }
-        82% {
-          opacity: 0.68;
-        }
+        background-image:
+          url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='180' height='180'><filter id='n'><feTurbulence type='fractalNoise' baseFrequency='.86' numOctaves='3' stitchTiles='stitchTiles'/></filter><rect width='100%25' height='100%25' filter='url(%23n)' opacity='.18'/></svg>"),
+          linear-gradient(90deg, transparent, rgba(255, 255, 255, 0.025), transparent);
+        mix-blend-mode: soft-light;
+        opacity: 0.28;
       }
 
       .stage {
-        width: min(900px, 96vw);
+        width: min(960px, calc(100vw - 32px));
         display: grid;
-        gap: 14px;
+        gap: 16px;
         justify-items: center;
+        position: relative;
+        z-index: 1;
       }
 
       /* ── 羊皮纸 ─────────────────────────────── */
       .sheet {
         position: relative;
         width: 100%;
-        height: min(640px, 78dvh);
-        border-radius: 1.6% 2.6% 2% 3% / 3% 2.2% 3.4% 2.6%;
+        height: clamp(420px, 78dvh, 680px);
+        border: 1px solid rgba(185, 176, 159, 0.82);
+        border-radius: 4px;
         background:
-          radial-gradient(
-            ellipse at 16% 6%,
-            rgba(255, 251, 235, 0.5),
-            transparent 44%
-          ),
-          radial-gradient(
-            ellipse at 86% 92%,
-            rgba(94, 66, 34, 0.3),
-            transparent 56%
-          ),
-          radial-gradient(
-            ellipse at 6% 96%,
-            rgba(94, 66, 34, 0.2),
-            transparent 44%
-          ),
-          radial-gradient(
-            ellipse at 96% 4%,
-            rgba(118, 86, 46, 0.16),
-            transparent 40%
-          ),
-          linear-gradient(
-            113deg,
-            #ece0c0 0%,
-            #e2d2aa 38%,
-            #d8c496 70%,
-            #ccb582 100%
-          );
+          linear-gradient(rgba(255, 255, 255, 0.2), transparent 24%),
+          linear-gradient(104deg, var(--paper), #e3ded2 58%, var(--paper-deep));
         box-shadow:
-          inset 0 0 95px rgba(82, 56, 24, 0.36),
-          inset 0 0 16px rgba(64, 42, 16, 0.28),
-          0 34px 80px rgba(0, 0, 0, 0.68),
-          0 4px 16px rgba(0, 0, 0, 0.5);
-        transform: rotate(0.3deg);
+          inset 0 0 72px rgba(75, 70, 60, 0.14),
+          inset 0 0 1px rgba(255, 255, 255, 0.9),
+          0 2px 0 rgba(255, 255, 255, 0.08),
+          0 28px 70px rgba(0, 0, 0, 0.44),
+          0 5px 14px rgba(0, 0, 0, 0.32);
         cursor: crosshair;
         overflow: hidden;
         user-select: none;
         -webkit-user-select: none;
         -webkit-touch-callout: none;
         touch-action: none;
+        transition: box-shadow 800ms ease, filter 500ms ease;
       }
 
       /* 纸张颗粒（SVG 噪点，乘法混合出纤维质感） */
@@ -157,9 +117,9 @@
         position: absolute;
         inset: 0;
         border-radius: inherit;
-        background-image: url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='260' height='260'><filter id='n'><feTurbulence type='fractalNoise' baseFrequency='0.75' numOctaves='3' stitchTiles='stitch'/><feColorMatrix type='saturate' values='0'/></filter><rect width='100%25' height='100%25' filter='url(%23n)' opacity='0.6'/></svg>");
+        background-image: url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='220' height='220'><filter id='n'><feTurbulence type='fractalNoise' baseFrequency='.68 .42' numOctaves='4' stitchTiles='stitch'/><feColorMatrix type='saturate' values='0'/></filter><rect width='100%25' height='100%25' filter='url(%23n)' opacity='.42'/></svg>");
         mix-blend-mode: multiply;
-        opacity: 0.13;
+        opacity: 0.08;
         pointer-events: none;
         z-index: 1;
       }
@@ -171,29 +131,24 @@
         inset: 0;
         border-radius: inherit;
         background:
-          radial-gradient(
-            150px 95px at 79% 16%,
-            rgba(110, 78, 38, 0.09),
-            transparent 70%
-          ),
-          radial-gradient(
-            210px 150px at 12% 80%,
-            rgba(110, 78, 38, 0.08),
-            transparent 70%
-          ),
-          radial-gradient(
-            95px 70px at 42% 28%,
-            rgba(110, 78, 38, 0.05),
-            transparent 70%
-          ),
-          linear-gradient(to top, rgba(60, 40, 16, 0.1), transparent 9%);
+          linear-gradient(90deg, rgba(70, 65, 57, 0.08), transparent 2.2%, transparent 97%, rgba(70, 65, 57, 0.1)),
+          linear-gradient(0deg, rgba(70, 65, 57, 0.08), transparent 3%, transparent 96%, rgba(255, 255, 255, 0.16));
         pointer-events: none;
         z-index: 1;
       }
 
       /* 阅读墨迹时，纸页透出暖光 */
       .sheet.reading {
-        animation: breathe 2.2s ease-in-out infinite;
+        animation: breathe 2.4s ease-in-out infinite;
+      }
+
+      .sheet.answering {
+        box-shadow:
+          inset 0 0 72px rgba(75, 70, 60, 0.11),
+          inset 0 0 1px rgba(255, 255, 255, 0.92),
+          0 2px 0 rgba(255, 255, 255, 0.08),
+          0 30px 78px rgba(0, 0, 0, 0.48),
+          0 5px 14px rgba(0, 0, 0, 0.32);
       }
 
       @keyframes breathe {
@@ -202,7 +157,7 @@
           filter: brightness(1);
         }
         50% {
-          filter: brightness(1.07) sepia(0.08);
+          filter: brightness(1.025) contrast(0.99);
         }
       }
 
@@ -216,6 +171,7 @@
         user-select: none;
         -webkit-user-select: none;
         -webkit-touch-callout: none;
+        mix-blend-mode: multiply;
       }
 
       /* ── 日记的回信：按管理员配置显示特效 ── */
@@ -223,11 +179,13 @@
         position: absolute;
         inset: 0;
         z-index: 3;
-        padding: 50px 62px;
+        padding: clamp(36px, 6vw, 68px) clamp(30px, 7vw, 82px);
         pointer-events: none;
         color: var(--ink-diary);
         transition: opacity 1.4s ease;
         overflow: hidden;
+        mix-blend-mode: multiply;
+        text-rendering: geometricPrecision;
       }
 
       /* 字格：HanziWriter 在其中绘制笔画 SVG */
@@ -243,6 +201,7 @@
       .cell svg {
         display: block;
         margin: 4px auto 0;
+        filter: drop-shadow(0 0 0.45px rgba(20, 22, 20, 0.35));
       }
 
       .cell.narrow {
@@ -267,9 +226,10 @@
         font-size: 38px;
         fill: transparent;
         stroke: var(--ink-diary);
-        stroke-width: 1.25;
+        stroke-width: 1.35;
         stroke-linecap: round;
         stroke-linejoin: round;
+        paint-order: stroke fill;
         stroke-dasharray: var(--dash, 120);
         stroke-dashoffset: var(--dash, 120);
         animation:
@@ -297,9 +257,9 @@
       .fade-ch.reveal-gradient {
         background: linear-gradient(
           90deg,
-          rgba(59, 42, 21, 0.12),
-          rgba(59, 42, 21, 0.96),
-          rgba(59, 42, 21, 0.42)
+          rgba(37, 39, 36, 0.1),
+          rgba(37, 39, 36, 0.96),
+          rgba(37, 39, 36, 0.38)
         );
         background-size: 220% 100%;
         -webkit-background-clip: text;
@@ -341,8 +301,8 @@
         0% {
           opacity: 0;
           filter: blur(7px);
-          transform: scale(1.12);
-          text-shadow: 0 0 18px rgba(59, 42, 21, 0.35);
+          transform: scale(1.08);
+          text-shadow: 0 0 16px rgba(37, 39, 36, 0.32);
         }
         58% {
           opacity: 0.82;
@@ -353,7 +313,7 @@
           opacity: 0.95;
           filter: blur(0);
           transform: scale(1);
-          text-shadow: 0 0 0 rgba(59, 42, 21, 0);
+          text-shadow: 0 0 0 rgba(37, 39, 36, 0);
         }
       }
 
@@ -375,29 +335,43 @@
       #status {
         margin: 0;
         min-height: 20px;
-        font-size: 17px;
+        font-size: 15px;
         font-weight: 400;
         letter-spacing: 2px;
-        color: #6f5f44;
+        color: var(--muted);
         text-align: center;
         transition: opacity 0.4s ease;
         user-select: none;
+        opacity: 0.82;
       }
 
       @media (max-width: 640px) {
         body {
-          padding: 10px;
+          padding: 8px;
+          justify-content: flex-start;
+        }
+        .stage {
+          width: calc(100vw - 16px);
+          gap: 12px;
         }
         .sheet {
-          height: 82dvh;
+          height: min(84dvh, 720px);
         }
         #replyLayer {
-          padding: 30px 28px;
-          font-size: 27px;
+          padding: 28px 24px;
         }
         #status {
           font-size: 15px;
           letter-spacing: 1px;
+        }
+      }
+
+      @media (prefers-reduced-motion: reduce) {
+        .sheet.reading,
+        .fade-ch,
+        .stroke-letter text {
+          animation-duration: 1ms !important;
+          animation-iteration-count: 1 !important;
         }
       }
     </style>
@@ -428,8 +402,8 @@
       const replyLayer = document.getElementById("replyLayer");
       const statusEl = document.getElementById("status");
 
-      const INK_USER = "#2a2016";
-      const INK_DIARY = "#3b2a15";
+      const INK_USER = "#171a18";
+      const INK_DIARY = "#252724";
       const CJK = /[㐀-鿿]/;
       const KANA = /[\u3040-\u30ff]/;
       const LATIN = /[A-Za-z0-9]/;
@@ -473,6 +447,7 @@
       let dpr = 1;
       let strokes = [];
       let currentStroke = null;
+      let activePointerId = null;
       let lastPoint = null;
       let lastTime = 0;
       let state = "idle"; // idle | reading | replying
@@ -513,27 +488,35 @@
 
       function getPoint(e) {
         const rect = canvas.getBoundingClientRect();
-        return { x: e.clientX - rect.left, y: e.clientY - rect.top };
+        return {
+          x: e.clientX - rect.left,
+          y: e.clientY - rect.top,
+          pressure:
+            e.pointerType === "pen" && e.pressure > 0 ? e.pressure : 0,
+          time: e.timeStamp || performance.now(),
+        };
       }
 
       canvas.addEventListener("pointerdown", (e) => {
-        if (state !== "idle") return;
+        if (state !== "idle" || currentStroke) return;
         e.preventDefault();
         document.body.classList.add("writing");
+        activePointerId = e.pointerId;
         try {
           canvas.setPointerCapture(e.pointerId);
         } catch (_) {}
         clearTimeout(autoReadTimer);
         const p = getPoint(e);
-        currentStroke = { points: [{ ...p, w: 5.4 }] };
+        const initialWidth = p.pressure ? 3.4 + p.pressure * 6.8 : 5.6;
+        currentStroke = { points: [{ ...p, w: initialWidth }] };
         strokes.push(currentStroke);
         lastPoint = p;
-        lastTime = performance.now();
+        lastTime = p.time;
         drawStrokes();
       });
 
       canvas.addEventListener("pointermove", (e) => {
-        if (!currentStroke) return;
+        if (!currentStroke || e.pointerId !== activePointerId) return;
         e.preventDefault();
         const events =
           typeof e.getCoalescedEvents === "function"
@@ -543,23 +526,27 @@
       });
 
       function drawPoint(p) {
-        const now = performance.now();
         const dist = Math.hypot(p.x - lastPoint.x, p.y - lastPoint.y);
-        if (dist < 1.15) return;
-        const speed = dist / Math.max(now - lastTime, 1);
-        const targetW = Math.max(3.4, Math.min(7.2, 7 - speed * 1.8));
+        if (dist < 0.72) return;
+        const speed = dist / Math.max(p.time - lastTime, 1);
+        const speedWidth = Math.max(3.1, Math.min(8.2, 8.1 - speed * 2.15));
+        const targetW = p.pressure
+          ? Math.max(2.8, Math.min(9.8, 3.1 + p.pressure * 7.2 - speed * 0.45))
+          : speedWidth;
         const prevW = currentStroke.points[currentStroke.points.length - 1].w;
-        const w = prevW * 0.72 + targetW * 0.28;
+        const w = prevW * 0.66 + targetW * 0.34;
         currentStroke.points.push({ ...p, w });
         lastPoint = p;
-        lastTime = now;
+        lastTime = p.time;
         scheduleInkDraw();
       }
 
-      function endStroke() {
+      function endStroke(e) {
+        if (!currentStroke || e.pointerId !== activePointerId) return;
+        if (e.type === "pointerup") drawPoint(getPoint(e));
         document.body.classList.remove("writing");
-        if (!currentStroke) return;
         currentStroke = null;
+        activePointerId = null;
         clearTimeout(autoReadTimer);
         autoReadTimer = setTimeout(readInk, 2800);
         setStatus("墨还湿着，纸页正在听。");
@@ -578,78 +565,117 @@
       }
 
       function inkColor(dry = 0, alpha = 1) {
-        const r = Math.round(36 + dry * 70);
+        const r = Math.round(23 + dry * 52);
         const g = Math.round(26 + dry * 50);
-        const b = Math.round(14 + dry * 36);
+        const b = Math.round(24 + dry * 45);
         return `rgba(${r}, ${g}, ${b}, ${alpha})`;
       }
 
-      function smoothPath(points, yOffset = 0) {
-        const path = new Path2D();
-        if (points.length === 1) {
-          const p = points[0];
-          path.arc(p.x, p.y + yOffset, p.w * 0.45, 0, Math.PI * 2);
-          return path;
+      function appendSmoothSide(path, side, move = false) {
+        if (!side.length) return;
+        if (move) path.moveTo(side[0].x, side[0].y);
+        else path.lineTo(side[0].x, side[0].y);
+        if (side.length === 1) return;
+        for (let i = 1; i < side.length - 1; i++) {
+          const p = side[i];
+          const next = side[i + 1];
+          path.quadraticCurveTo(
+            p.x,
+            p.y,
+            (p.x + next.x) / 2,
+            (p.y + next.y) / 2,
+          );
         }
-        path.moveTo(points[0].x, points[0].y + yOffset);
-        for (let i = 1; i < points.length - 1; i++) {
-          const p = points[i];
-          const next = points[i + 1];
-          const mx = (p.x + next.x) / 2;
-          const my = (p.y + next.y) / 2 + yOffset;
-          path.quadraticCurveTo(p.x, p.y + yOffset, mx, my);
-        }
-        const last = points[points.length - 1];
-        path.lineTo(last.x, last.y + yOffset);
-        return path;
+        path.lineTo(side[side.length - 1].x, side[side.length - 1].y);
       }
 
-      function avgWidth(points) {
-        if (!points.length) return 5;
-        return points.reduce((sum, p) => sum + p.w, 0) / points.length;
+      function strokeOutline(points, yOffset = 0, dry = 0) {
+        if (points.length < 2) return null;
+        const left = [];
+        const right = [];
+        const lastIndex = points.length - 1;
+        const widthScale = 1 - dry * 0.14;
+
+        for (let i = 0; i <= lastIndex; i++) {
+          const p = points[i];
+          const prev = points[Math.max(0, i - 1)];
+          const next = points[Math.min(lastIndex, i + 1)];
+          let dx = next.x - prev.x;
+          let dy = next.y - prev.y;
+          const length = Math.hypot(dx, dy) || 1;
+          dx /= length;
+          dy /= length;
+          const taper =
+            i === 0 ? 0.62 : i === lastIndex ? 0.38 : i === lastIndex - 1 ? 0.82 : 1;
+          const radius = Math.max(0.9, p.w * 0.5 * widthScale * taper);
+          left.push({ x: p.x - dy * radius, y: p.y + dx * radius + yOffset });
+          right.push({ x: p.x + dy * radius, y: p.y - dx * radius + yOffset });
+        }
+
+        const path = new Path2D();
+        appendSmoothSide(path, left, true);
+
+        const end = points[lastIndex];
+        const beforeEnd = points[Math.max(0, lastIndex - 1)];
+        const endLength = Math.hypot(end.x - beforeEnd.x, end.y - beforeEnd.y) || 1;
+        path.quadraticCurveTo(
+          end.x + ((end.x - beforeEnd.x) / endLength) * end.w * 0.12,
+          end.y + yOffset + ((end.y - beforeEnd.y) / endLength) * end.w * 0.12,
+          right[lastIndex].x,
+          right[lastIndex].y,
+        );
+
+        const reverseRight = right.slice().reverse();
+        appendSmoothSide(path, reverseRight);
+
+        const start = points[0];
+        const afterStart = points[Math.min(1, lastIndex)];
+        const startLength = Math.hypot(afterStart.x - start.x, afterStart.y - start.y) || 1;
+        path.quadraticCurveTo(
+          start.x - ((afterStart.x - start.x) / startLength) * start.w * 0.18,
+          start.y + yOffset - ((afterStart.y - start.y) / startLength) * start.w * 0.18,
+          left[0].x,
+          left[0].y,
+        );
+        path.closePath();
+        return path;
       }
 
       function drawInkStroke(stroke, alpha = 1, blur = 0, yOffset = 0, dry = 0) {
         const points = stroke.points;
         if (!points.length) return;
-        const width = avgWidth(points) * (1 - dry * 0.16);
         if (points.length === 1) {
           const p = points[0];
+          const radius = p.w * (1 - dry * 0.14) * 0.42;
           ctx.save();
           ctx.globalAlpha = alpha;
-          ctx.filter = blur > 0 ? `blur(${blur + 2}px)` : "blur(2px)";
-          ctx.fillStyle = inkColor(dry, 0.22);
+          ctx.filter = `blur(${blur + 1.15}px)`;
+          ctx.fillStyle = inkColor(dry, 0.18);
           ctx.beginPath();
-          ctx.arc(p.x, p.y + yOffset, width * 0.82, 0, Math.PI * 2);
+          ctx.ellipse(p.x, p.y + yOffset, radius * 1.12, radius, -0.3, 0, Math.PI * 2);
           ctx.fill();
-          ctx.filter = blur > 0 ? `blur(${blur * 0.45}px)` : "none";
-          ctx.fillStyle = inkColor(dry, 0.88);
+          ctx.filter = blur > 0 ? `blur(${blur * 0.35}px)` : "none";
+          ctx.fillStyle = inkColor(dry, 0.94);
           ctx.beginPath();
-          ctx.arc(p.x, p.y + yOffset, width * 0.42, 0, Math.PI * 2);
+          ctx.ellipse(p.x, p.y + yOffset, radius * 0.92, radius * 0.8, -0.3, 0, Math.PI * 2);
           ctx.fill();
           ctx.restore();
           return;
         }
-        const path = smoothPath(points, yOffset);
+        const path = strokeOutline(points, yOffset, dry);
 
         ctx.save();
-        ctx.lineCap = "round";
-        ctx.lineJoin = "round";
         ctx.globalAlpha = alpha;
-
-        ctx.filter = blur > 0 ? `blur(${blur + 2.2}px)` : "blur(2.2px)";
-        ctx.strokeStyle = inkColor(dry, 0.2);
-        ctx.lineWidth = width + 3.8;
-        ctx.stroke(path);
-
-        ctx.filter = blur > 0 ? `blur(${blur * 0.45}px)` : "none";
-        ctx.strokeStyle = inkColor(dry, 0.92);
-        ctx.lineWidth = width;
-        ctx.stroke(path);
-
-        ctx.filter = "blur(0.6px)";
-        ctx.strokeStyle = inkColor(dry, 0.28);
-        ctx.lineWidth = Math.max(1.2, width * 0.42);
+        ctx.filter = `blur(${blur + 1.1}px)`;
+        ctx.fillStyle = inkColor(dry, 0.19);
+        ctx.fill(path);
+        ctx.filter = blur > 0 ? `blur(${blur * 0.34}px)` : "blur(0.12px)";
+        ctx.fillStyle = inkColor(dry, 0.95);
+        ctx.fill(path);
+        ctx.filter = "blur(0.35px)";
+        ctx.globalAlpha = alpha * 0.18;
+        ctx.strokeStyle = inkColor(dry, 0.8);
+        ctx.lineWidth = 0.55;
         ctx.stroke(path);
         ctx.restore();
       }
@@ -950,6 +976,7 @@
         const my = genId;
         const effect = normalizeReplyEffect(replyEffect);
         const profile = speedProfile();
+        sheet.classList.add("answering");
         replyLayer.className = `effect-${effect}`;
         replyLayer.style.opacity = 1;
         replyLayer.style.transitionDuration = profile.fadeOut + "ms";
@@ -975,11 +1002,11 @@
             (NARROW.test(ch) ? " narrow" : LATIN.test(ch) ? " latin" : "");
           cell.style.setProperty(
             "--r",
-            (Math.random() * 3 - 1.5).toFixed(1) + "deg",
+            (Math.random() * 1.4 - 0.7).toFixed(1) + "deg",
           );
           cell.style.setProperty(
             "--y",
-            (Math.random() * 2 - 1).toFixed(1) + "px",
+            (Math.random() * 1.2 - 0.6).toFixed(1) + "px",
           );
           replyLayer.appendChild(cell);
           if (effect === "stroke" && CJK.test(ch) && window.HanziWriter) {
@@ -1002,6 +1029,7 @@
         return wait(profile.fadeOut).then(() => {
           replyLayer.innerHTML = "";
           replyLayer.style.opacity = 1;
+          sheet.classList.remove("answering");
         });
       }
 
@@ -1062,12 +1090,14 @@
         genId++;
         strokes = [];
         currentStroke = null;
+        activePointerId = null;
         document.body.classList.remove("writing");
         clearTimeout(autoReadTimer);
         ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
         ctx.clearRect(0, 0, canvas.width, canvas.height);
         replyLayer.innerHTML = "";
         replyLayer.style.opacity = 1;
+        sheet.classList.remove("reading", "answering");
         state = "idle";
         setStatus("纸页重新安静。");
       }

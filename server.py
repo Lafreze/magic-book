@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""遗失的日记 —— 服务器
+"""墨页服务器
 
 本地运行:  python3 server.py [端口]        默认 8765
 Railway:   自动读取 PORT 环境变量
@@ -759,7 +759,7 @@ def main():
     port = int(os.environ.get("PORT") or (sys.argv[1] if len(sys.argv) > 1 else 8765))
     cfg = STORE.get_config()
     user, _ = admin_credentials(cfg)
-    print(f"遗失的日记   http://localhost:{port}/", flush=True)
+    print(f"墨页         http://localhost:{port}/", flush=True)
     print(f"数据存储     {STORE.name}", flush=True)
     print(f"管理入口     /admin  账户 {user}"
           f"{'（来自环境变量）' if os.environ.get('ADMIN_USER') else '（默认，可用 ADMIN_USER/ADMIN_PASSWORD 覆盖）'}", flush=True)

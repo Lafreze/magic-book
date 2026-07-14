@@ -3,10 +3,10 @@
   <head>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <title>日记 · 管理</title>
+    <title>墨页管理</title>
     <meta name="robots" content="noindex, nofollow" />
     <link
-      href="https://fonts.googleapis.com/css2?family=Noto+Serif+SC:wght@300;500;700&display=swap"
+      href="https://fonts.googleapis.com/css2?family=Klee+One:wght@400;600&family=Noto+Serif+SC:wght@300;500;700&display=swap"
       rel="stylesheet"
     />
 
@@ -15,17 +15,25 @@
         box-sizing: border-box;
       }
 
+      :root {
+        --surface: #171817;
+        --surface-raised: #20211f;
+        --line: rgba(218, 213, 201, 0.14);
+        --line-strong: rgba(218, 213, 201, 0.3);
+        --text: #d9d4c8;
+        --muted: #918c82;
+        --quiet: #68655f;
+        --accent: #ece7dc;
+      }
+
       body {
         margin: 0;
         min-height: 100vh;
-        font-family: "Noto Serif SC", "Songti SC", serif;
-        background: radial-gradient(
-          1200px 800px at 50% 20%,
-          #241b12,
-          #140e08 60%,
-          #0a0603
-        );
-        color: #b9a582;
+        font-family: "Klee One", "Noto Serif SC", "Songti SC", serif;
+        background:
+          linear-gradient(180deg, rgba(255, 255, 255, 0.025), transparent 24%),
+          linear-gradient(135deg, var(--surface-raised), var(--surface));
+        color: var(--text);
         display: flex;
         align-items: flex-start;
         justify-content: center;
@@ -41,21 +49,21 @@
         font-size: 20px;
         font-weight: 300;
         letter-spacing: 10px;
-        color: #c9b183;
+        color: var(--accent);
       }
 
       .sub {
         margin: 0 0 34px;
         font-size: 12px;
         letter-spacing: 2px;
-        color: #6f5f44;
+        color: var(--quiet);
         font-style: italic;
       }
 
       .card {
-        background: rgba(255, 235, 190, 0.035);
-        border: 1px solid rgba(201, 177, 131, 0.16);
-        border-radius: 8px;
+        background: rgba(255, 255, 255, 0.025);
+        border: 1px solid var(--line);
+        border-radius: 6px;
         padding: 26px 28px;
         margin-bottom: 20px;
       }
@@ -65,7 +73,7 @@
         font-size: 13px;
         font-weight: 500;
         letter-spacing: 4px;
-        color: #9c8760;
+        color: var(--muted);
       }
 
       /* 统计 */
@@ -78,15 +86,15 @@
       .stat {
         padding: 16px 6px;
         text-align: center;
-        border: 1px solid rgba(201, 177, 131, 0.12);
-        border-radius: 6px;
-        background: rgba(0, 0, 0, 0.18);
+        border: 1px solid rgba(218, 213, 201, 0.1);
+        border-radius: 4px;
+        background: rgba(0, 0, 0, 0.16);
       }
 
       .stat .num {
         font-size: 26px;
         font-weight: 300;
-        color: #e7cd93;
+        color: var(--accent);
         line-height: 1.2;
         font-variant-numeric: tabular-nums;
       }
@@ -95,17 +103,17 @@
         margin-top: 6px;
         font-size: 11px;
         letter-spacing: 3px;
-        color: #6f5f44;
+        color: var(--quiet);
       }
 
       .days {
         margin-top: 16px;
         font-size: 12px;
-        color: #6f5f44;
+        color: var(--quiet);
         line-height: 2;
       }
       .days b {
-        color: #9c8760;
+        color: var(--muted);
         font-weight: 500;
       }
 
@@ -125,22 +133,22 @@
       td {
         padding: 9px 10px;
         text-align: left;
-        border-bottom: 1px solid rgba(201, 177, 131, 0.1);
+        border-bottom: 1px solid rgba(218, 213, 201, 0.09);
         white-space: nowrap;
       }
 
       th {
-        color: #6f5f44;
+        color: var(--quiet);
         font-weight: 500;
         letter-spacing: 2px;
       }
       td {
-        color: #b9a582;
+        color: var(--text);
         font-variant-numeric: tabular-nums;
       }
       td.uid {
         font-family: ui-monospace, Menlo, monospace;
-        color: #9c8760;
+        color: var(--muted);
       }
       td.num-cell {
         text-align: right;
@@ -149,7 +157,7 @@
         text-align: right;
       }
       .empty {
-        color: #5d4f3a;
+        color: var(--quiet);
         font-size: 12px;
         letter-spacing: 1px;
       }
@@ -159,7 +167,7 @@
         display: block;
         font-size: 12px;
         letter-spacing: 3px;
-        color: #9c8760;
+        color: var(--muted);
         margin: 18px 0 7px;
       }
       label:first-of-type {
@@ -172,12 +180,12 @@
         width: 100%;
         padding: 11px 13px;
         font:
-          14px/1.7 "Noto Serif SC",
+          14px/1.7 "Klee One",
           serif;
-        color: #d8c8a4;
-        background: rgba(0, 0, 0, 0.28);
-        border: 1px solid rgba(201, 177, 131, 0.22);
-        border-radius: 5px;
+        color: var(--text);
+        background: rgba(0, 0, 0, 0.22);
+        border: 1px solid var(--line);
+        border-radius: 4px;
         outline: none;
         transition: border-color 0.2s ease;
       }
@@ -185,14 +193,14 @@
       input:focus,
       textarea:focus,
       select:focus {
-        border-color: rgba(231, 205, 147, 0.6);
+        border-color: rgba(236, 231, 220, 0.5);
       }
       select {
         appearance: none;
       }
       select option {
-        background: #140e08;
-        color: #d8c8a4;
+        background: var(--surface-raised);
+        color: var(--text);
       }
       textarea {
         resize: vertical;
@@ -201,7 +209,7 @@
 
       .hint {
         font-size: 11px;
-        color: #5d4f3a;
+        color: var(--quiet);
         margin-top: 5px;
         letter-spacing: 1px;
       }
@@ -210,20 +218,20 @@
         margin-top: 24px;
         padding: 11px 38px;
         font:
-          13px "Noto Serif SC",
+          13px "Klee One",
           serif;
         letter-spacing: 5px;
-        color: #e7cd93;
-        background: transparent;
-        border: 1px solid rgba(201, 177, 131, 0.45);
-        border-radius: 999px;
+        color: var(--accent);
+        background: rgba(255, 255, 255, 0.02);
+        border: 1px solid var(--line-strong);
+        border-radius: 4px;
         cursor: pointer;
         transition: all 0.2s ease;
       }
 
       button:hover {
-        background: rgba(201, 177, 131, 0.1);
-        border-color: rgba(231, 205, 147, 0.8);
+        background: rgba(255, 255, 255, 0.07);
+        border-color: rgba(236, 231, 220, 0.58);
       }
       button:disabled {
         opacity: 0.4;
@@ -237,10 +245,10 @@
         letter-spacing: 2px;
       }
       .msg.ok {
-        color: #9fb98a;
+        color: #a9bda2;
       }
       .msg.err {
-        color: #c98a7e;
+        color: #cba49b;
       }
 
       /* 登录视图 */
@@ -262,12 +270,12 @@
         margin-top: 26px;
         font-size: 11px;
         letter-spacing: 2px;
-        color: #5d4f3a;
+        color: var(--quiet);
         text-decoration: none;
       }
 
       .back:hover {
-        color: #9c8760;
+        color: var(--muted);
       }
 
       .logout {
@@ -303,8 +311,8 @@
     <!-- 面板 -->
     <div class="wrap" id="panel" hidden>
       <button class="logout" id="logoutBtn">退 出</button>
-      <h1>遗失的日记 · 管理</h1>
-      <p class="sub">此页面无公开入口，请勿外传地址。</p>
+      <h1>墨页管理</h1>
+      <p class="sub">仅限管理员使用。</p>
 
       <div class="card">
         <h2>访 问 统 计</h2>
@@ -354,13 +362,13 @@
       </div>
 
       <div class="card">
-        <h2>日 记 设 定</h2>
-        <label>日记所属人</label>
+        <h2>回 信 设 定</h2>
+        <label>回信身份</label>
         <input id="ownerName" placeholder="例如：一位无名的书写者" />
         <label>人物背景</label>
         <textarea
           id="ownerBg"
-          placeholder="这个人是谁？日记为何遗失？AI 会以这个身份和口吻回信。"
+          placeholder="写下身份、经历与回信口吻。"
         ></textarea>
         <div class="hint">保存后立即生效，AI 回信将以此身份的口吻书写。</div>
       </div>
@@ -423,7 +431,7 @@
       <button id="saveBtn">保 存</button>
       <span class="msg" id="saveMsg"></span>
       <br />
-      <a class="back" href="/">← 回到日记</a>
+      <a class="back" href="/">← 回到墨页</a>
     </div>
 
     <script>
